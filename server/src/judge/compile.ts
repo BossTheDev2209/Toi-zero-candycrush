@@ -39,7 +39,7 @@ export async function compile(input: CompileInput): Promise<CompileOk | CompileF
   const args = [...flags, srcPath, "-o", binaryPath];
 
   return new Promise((resolve) => {
-    const proc = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const proc = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"] });
     let stderr = "";
     proc.stderr.on("data", (b) => { stderr += b.toString(); });
     proc.on("error", (err) => {
