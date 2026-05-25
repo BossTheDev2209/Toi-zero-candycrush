@@ -95,12 +95,13 @@ export function problemRepo(db: Database) {
       };
     },
 
-    update(id: number, input: CreateProblemInput): void {
+    update(id: number, input: CreateProblemInput): boolean {
       const tx = db.transaction(() => {
-        updateProblem.run(
+        const info = updateProblem.run(
           input.title, input.statementMd, input.inputMd, input.outputMd, input.category,
           input.timeLimitMs, input.memoryLimitMb, input.ioMode, input.sourceUrl, id
         );
+        if (info.changes === 0) return false;
         deleteTests.run(id);
         input.sampleTests.forEach((t, i) => {
           insertTest.run(id, "sample", "main", i, t.input, t.expected, t.explanationMd);
@@ -108,12 +109,14 @@ export function problemRepo(db: Database) {
         input.extraTests.forEach((t, i) => {
           insertTest.run(id, "extra", t.subtask || "main", i, t.input, t.expected, "");
         });
+        return true;
       });
-      tx();
+      return tx();
     },
 
-    delete(id: number): void {
-      deleteProblem.run(id);
+    delete(id: number): boolean {
+      const info = deleteProblem.run(id);
+      return info.changes > 0;
     },
   };
 }

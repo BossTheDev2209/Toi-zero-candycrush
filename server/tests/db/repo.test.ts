@@ -47,6 +47,64 @@ describe("problemRepo", () => {
     expect(list.length).toBe(2);
     expect(list.map((p) => p.slug)).toEqual(["b", "a"]);
   });
+
+  test("getById returns null for unknown id", () => {
+    const db = openDb(":memory:");
+    expect(problemRepo(db).getById(9999)).toBeNull();
+  });
+
+  test("update replaces problem fields and tests, returns true; false for unknown id", () => {
+    const db = openDb(":memory:");
+    const repo = problemRepo(db);
+    const id = repo.create({
+      slug: "a", title: "Old", statementMd: "old", inputMd: "", outputMd: "", category: "x",
+      timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [{ input: "1\n", expected: "1\n", explanationMd: "" }],
+      extraTests: [],
+    });
+    const ok = repo.update(id, {
+      slug: "a", title: "New", statementMd: "new", inputMd: "", outputMd: "", category: "y",
+      timeLimitMs: 2000, memoryLimitMb: 512, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [{ input: "2\n", expected: "2\n", explanationMd: "" }],
+      extraTests: [],
+    });
+    expect(ok).toBe(true);
+    const p = repo.getById(id);
+    expect(p!.title).toBe("New");
+    expect(p!.time_limit_ms).toBe(2000);
+    const tests = repo.getTests(id);
+    expect(tests.samples.length).toBe(1);
+    expect(tests.samples[0]!.input_text).toBe("2\n");
+
+    expect(repo.update(9999, {
+      slug: "x", title: "x", statementMd: "", inputMd: "", outputMd: "", category: "x",
+      timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [], extraTests: [],
+    })).toBe(false);
+  });
+
+  test("delete cascades to tests, solutions, and runs", () => {
+    const db = openDb(":memory:");
+    const pRepo = problemRepo(db);
+    const sRepo = solutionRepo(db);
+    const rRepo = runRepo(db);
+    const id = pRepo.create({
+      slug: "a", title: "A", statementMd: "", inputMd: "", outputMd: "", category: "x",
+      timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [{ input: "x", expected: "x", explanationMd: "" }],
+      extraTests: [],
+    });
+    sRepo.upsert(id, "cpp", "int main(){}");
+    rRepo.create({ problemId: id, language: "cpp", codeSnapshot: "x", verdict: "AC", totalRuntimeMs: 0, perTest: [] });
+
+    expect(pRepo.delete(id)).toBe(true);
+    expect(pRepo.getById(id)).toBeNull();
+    expect(pRepo.getTests(id).samples.length).toBe(0);
+    expect(sRepo.get(id)).toBeNull();
+    expect(rRepo.listRecent(id, 5).length).toBe(0);
+
+    expect(pRepo.delete(9999)).toBe(false);
+  });
 });
 
 describe("solutionRepo", () => {

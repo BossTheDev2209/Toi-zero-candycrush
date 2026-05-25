@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS problem (
   category     TEXT NOT NULL DEFAULT 'general',
   time_limit_ms   INTEGER NOT NULL DEFAULT 1000,
   memory_limit_mb INTEGER NOT NULL DEFAULT 256,
-  io_mode      TEXT NOT NULL DEFAULT 'stdio',
+  io_mode      TEXT NOT NULL DEFAULT 'stdio' CHECK (io_mode = 'stdio' OR io_mode LIKE 'file:%'),
   source_url   TEXT NOT NULL DEFAULT '',
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS problem (
 CREATE TABLE IF NOT EXISTS test_case (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   problem_id    INTEGER NOT NULL REFERENCES problem(id) ON DELETE CASCADE,
-  kind          TEXT NOT NULL,
+  kind          TEXT NOT NULL CHECK (kind IN ('sample', 'extra')),
   subtask       TEXT NOT NULL DEFAULT 'main',
   idx           INTEGER NOT NULL,
   input_text    TEXT NOT NULL,
@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_test_case_problem ON test_case(problem_id);
 CREATE TABLE IF NOT EXISTS solution (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   problem_id INTEGER NOT NULL UNIQUE REFERENCES problem(id) ON DELETE CASCADE,
-  language   TEXT NOT NULL,
+  language   TEXT NOT NULL CHECK (language IN ('c', 'cpp')),
   code       TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS solution (
 CREATE TABLE IF NOT EXISTS run (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   problem_id      INTEGER NOT NULL REFERENCES problem(id) ON DELETE CASCADE,
-  language        TEXT NOT NULL,
+  language        TEXT NOT NULL CHECK (language IN ('c', 'cpp')),
   code_snapshot   TEXT NOT NULL,
-  verdict         TEXT NOT NULL,
+  verdict         TEXT NOT NULL CHECK (verdict IN ('AC', 'WA', 'TLE', 'RE', 'CE')),
   total_runtime_ms INTEGER NOT NULL DEFAULT 0,
   per_test_json   TEXT NOT NULL,
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
@@ -49,7 +49,7 @@ CREATE INDEX IF NOT EXISTS idx_run_problem ON run(problem_id, created_at DESC);
 CREATE TABLE IF NOT EXISTS toi_submission (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   problem_id    INTEGER NOT NULL REFERENCES problem(id) ON DELETE CASCADE,
-  language      TEXT NOT NULL,
+  language      TEXT NOT NULL CHECK (language IN ('c', 'cpp')),
   code_snapshot TEXT NOT NULL,
   http_status   INTEGER,
   response_json TEXT,
