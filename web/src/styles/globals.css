@@ -1,1 +1,30 @@
 @import "tailwindcss";
+@import "./tokens.css";
+
+@font-face {
+  font-family: "Sofia Sans";
+  font-weight: 400 700;
+  font-display: swap;
+  src: local("Sofia Sans"), url("/fonts/sofia-sans-variable.woff2") format("woff2");
+}
+
+html, body, #root {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-weight: 450;
+  line-height: 1.4;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.0;
+}
+h1 { font-size: 64px; line-height: 64px; }
+h2 { font-size: 36px; line-height: 44px; }
+h3 { font-size: 24px; line-height: 28.8px; }

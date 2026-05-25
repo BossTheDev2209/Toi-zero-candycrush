@@ -1,0 +1,44 @@
+@theme {
+  /* Color: Surfaces */
+  --color-canvas: #F3F0EE;
+  --color-lifted: #FCFBFA;
+  --color-white: #FFFFFF;
+  --color-bone: #F4F4F4;
+
+  /* Color: Ink */
+  --color-ink: #141413;
+  --color-charcoal: #262627;
+  --color-slate: #696969;
+  --color-granite: #555555;
+  --color-graphite: #565656;
+  --color-dust: #D1CDC7;
+  --color-whisper: #E8E2DA;
+
+  /* Color: Signal */
+  --color-signal: #CF4500;
+  --color-signal-light: #F37338;
+  --color-clay: #9A3A0A;
+
+  /* Color: Semantic */
+  --color-link: #3860BE;
+
+  /* Color: Brand mark (never UI) */
+  --color-mc-red: #EB001B;
+  --color-mc-yellow: #F79E1B;
+
+  /* Radius scale */
+  --radius-micro: 4px;
+  --radius-btn: 20px;
+  --radius-consent: 24px;
+  --radius-hero: 40px;
+  --radius-pill: 999px;
+  --radius-circle: 9999px;
+
+  /* Font family */
+  --font-sans: "Sofia Sans", "Inter", system-ui, sans-serif;
+
+  /* Shadow */
+  --shadow-nav: 0 4px 24px 0 rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 24px 48px 0 rgba(0, 0, 0, 0.08);
+  --shadow-feature: 0 70px 110px 0 rgba(0, 0, 0, 0.25);
+}
