@@ -3,6 +3,8 @@ import { execute } from "./execute";
 import { compareOutputs } from "./compare";
 import { makeWorkdir, cleanupWorkdir } from "./workdir";
 import type { Language, Verdict } from "./verdicts";
+import { writeFile, readFile, rm } from "node:fs/promises";
+import { join as joinPath } from "node:path";
 
 export interface JudgeTest {
   idx: number;
@@ -66,9 +68,23 @@ export async function runJudge(input: JudgeInput): Promise<JudgeResult> {
     let worst: Verdict = "AC";
 
     for (const t of input.tests) {
+      let stdin = "";
+      let inFile: string | null = null;
+      let outFile: string | null = null;
+
+      if (input.ioMode.startsWith("file:")) {
+        const base = input.ioMode.slice("file:".length);
+        inFile  = joinPath(wd, `${base}.in`);
+        outFile = joinPath(wd, `${base}.out`);
+        await writeFile(inFile, t.input, "utf8");
+        await rm(outFile, { force: true });
+      } else {
+        stdin = t.input;
+      }
+
       const r = await execute({
         binaryPath: c.binaryPath,
-        stdin: input.ioMode === "stdio" ? t.input : "",
+        stdin,
         timeoutMs: input.timeLimitMs,
         workdir: wd,
       });
@@ -79,7 +95,12 @@ export async function runJudge(input: JudgeInput): Promise<JudgeResult> {
       if (r.timedOut) v = "TLE";
       else if (r.exit !== 0) v = "RE";
       else {
-        const cmp = compareOutputs(r.stdout, t.expected);
+        let actual = r.stdout;
+        if (outFile) {
+          try { actual = await readFile(outFile, "utf8"); }
+          catch { actual = ""; }
+        }
+        const cmp = compareOutputs(actual, t.expected);
         if (cmp.ok) v = "AC";
         else { v = "WA"; diff = cmp.diff; }
       }

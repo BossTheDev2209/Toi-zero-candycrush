@@ -8,6 +8,7 @@ const echoCode = readFileSync(join(FIX, "stdio_echo.cpp"), "utf8");
 const waCode = readFileSync(join(FIX, "wa.cpp"), "utf8");
 const tleCode = readFileSync(join(FIX, "tle.cpp"), "utf8");
 const ceCode = readFileSync(join(FIX, "ce.cpp"), "utf8");
+const fileIoCode = readFileSync(join(FIX, "file_io.cpp"), "utf8");
 
 describe("runJudge stdio mode", () => {
   test("AC across all sample tests", async () => {
@@ -60,5 +61,18 @@ describe("runJudge stdio mode", () => {
     expect(r.verdict).toBe("CE");
     expect(r.compileStderr).toBeTruthy();
     expect(r.perTest.length).toBe(0);
+  });
+});
+
+describe("runJudge file mode", () => {
+  test("AC when program reads train1.in and writes train1.out", async () => {
+    const r = await runJudge({
+      language: "cpp",
+      code: fileIoCode,
+      timeLimitMs: 1000,
+      ioMode: "file:train1",
+      tests: [{ idx: 0, input: "4 5\n", expected: "9\n" }],
+    });
+    expect(r.verdict).toBe("AC");
   });
 });
