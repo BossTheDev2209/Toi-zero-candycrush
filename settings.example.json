@@ -1,0 +1,16 @@
+{
+  "dataDir": ".toizero",
+  "dbPath": ".toizero/toizero.db",
+  "problemsDir": "problems",
+  "port": 5173,
+  "apiPort": 8787,
+  "compiler": {
+    "cpp": { "bin": "g++", "flags": ["-O2", "-std=c++17", "-Wall", "-Wextra", "-static"] },
+    "c":   { "bin": "gcc", "flags": ["-O2", "-std=c11", "-Wall", "-Wextra", "-static"] }
+  },
+  "toi": {
+    "submitUrl": "",
+    "cookie": "",
+    "extraHeaders": {}
+  }
+}

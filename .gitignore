@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.toizero/
+problems/
+toizero.db
+toizero.db-journal
+toizero.db-wal
+toizero.db-shm
+settings.json
+.DS_Store
+.env
+.env.local
+*.log
+.vscode/
+.idea/
