@@ -4,6 +4,7 @@ import { NavPill } from "./components/NavPill";
 import { ProblemListPage } from "./pages/ProblemListPage";
 import { ProblemEditModal } from "./pages/ProblemEditModal";
 import { ProblemWorkspacePage } from "./pages/ProblemWorkspacePage";
+import { DocsPage } from "./pages/DocsPage";
 
 export default function App() {
   const [editing, setEditing] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
@@ -18,6 +19,7 @@ export default function App() {
           element={<ProblemListPage key={refreshKey} onAdd={() => setEditing({ open: true, id: null })} />}
         />
         <Route path="/p/:id" element={<ProblemWorkspacePage />} />
+        <Route path="/docs" element={<DocsPage />} />
       </Routes>
       {editing.open && (
         <ProblemEditModal

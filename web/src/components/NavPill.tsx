@@ -5,6 +5,7 @@ import { getTheme, toggleTheme, type Theme } from "../lib/theme";
 export function NavPill() {
   const loc = useLocation();
   const onHome = loc.pathname === "/";
+  const onDocs = loc.pathname === "/docs";
   const [theme, setLocalTheme] = useState<Theme>(getTheme());
 
   function flip() {
@@ -19,7 +20,7 @@ export function NavPill() {
           <span className="w-4 h-4 rounded-full bg-[var(--color-mc-yellow)] mix-blend-multiply" />
           <span className="ml-2 font-medium tracking-[-0.02em] text-[var(--color-ink)]">TOIZero</span>
         </Link>
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-6">
           <Link
             to="/"
             className={`text-[16px] font-medium tracking-[-0.03em] ${
@@ -27,6 +28,14 @@ export function NavPill() {
             }`}
           >
             Problems
+          </Link>
+          <Link
+            to="/docs"
+            className={`text-[16px] font-medium tracking-[-0.03em] ${
+              onDocs ? "text-[var(--color-ink)]" : "text-[var(--color-graphite)]"
+            }`}
+          >
+            Docs
           </Link>
         </div>
         <button

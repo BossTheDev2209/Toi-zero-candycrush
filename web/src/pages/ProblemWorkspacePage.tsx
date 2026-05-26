@@ -23,6 +23,7 @@ export function ProblemWorkspacePage() {
   const [runs, setRuns] = useState<RunRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState<string | null>(null);
+  const [submitLink, setSubmitLink] = useState<string | null>(null);
   const [statementMode, setStatementMode] = useState<"pdf" | "markdown">("markdown");
   const [pdfMsg, setPdfMsg] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -54,11 +55,13 @@ export function ProblemWorkspacePage() {
   }
   async function submitToToi() {
     if (!confirm("Submit this code to the official TOI grader? This sends a real submission.")) return;
-    setSubmitting(true); setSubmitMsg(null);
+    setSubmitting(true); setSubmitMsg(null); setSubmitLink(null);
     try {
       const r = await api.submitToToi(pid, lang, code);
+      const submissionsUrl = p?.source_url.replace(/\/description\/?$/, "/submissions") ?? null;
+      setSubmitLink(submissionsUrl);
       if (r.error) setSubmitMsg("TOI error: " + r.error);
-      else setSubmitMsg("Submitted to TOI (HTTP " + r.status + "). Check the TOI site for the verdict.");
+      else setSubmitMsg("Submitted to TOI. Open the TOI submissions page to confirm the verdict.");
     } catch (e: any) { setSubmitMsg("Submit failed: " + (e.message ?? String(e))); }
     finally { setSubmitting(false); }
   }
@@ -160,7 +163,19 @@ export function ProblemWorkspacePage() {
             <div className="flex-1 overflow-hidden rounded-[24px] border border-[var(--color-dust)]/40 min-h-0">
               <CodeEditor language={lang} value={code} onChange={setCode} />
             </div>
-            {submitMsg && <div className="px-4 pt-3 text-sm text-[var(--color-slate)]">{submitMsg}</div>}
+            {submitMsg && (
+              <div className="px-4 pt-3 text-sm text-[var(--color-slate)]">
+                {submitMsg}
+                {submitLink && (
+                  <>
+                    {" "}
+                    <a className="font-semibold text-[var(--color-link)]" href={submitLink} target="_blank" rel="noreferrer">
+                      Open TOI submissions
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
             {result && <TestResultsPanel result={result} />}
           </div>
         </section>

@@ -30,6 +30,49 @@ export interface ToiSubmitResult {
   status: number | null;
   body: unknown;
   error: string | null;
+  contentType?: string;
+  finalUrl?: string;
+  redirected?: boolean;
+  submitted?: boolean;
+}
+
+export interface ToiSubmitResponseMeta {
+  ok: boolean;
+  status: number;
+  contentType: string;
+  finalUrl: string;
+  redirected: boolean;
+  text: string;
+}
+
+export function classifyToiSubmitResponse(meta: ToiSubmitResponseMeta): string | null {
+  const contentType = meta.contentType.toLowerCase();
+  const finalUrl = meta.finalUrl.toLowerCase();
+  const text = meta.text.slice(0, 4000);
+  const lower = text.toLowerCase();
+
+  if (lower.includes("csrf") || lower.includes("_xsrf") || lower.includes("xsrf")) {
+    return "TOI rejected the session token. Refresh cookie and XSRF in settings.json, then try again.";
+  }
+
+  if (finalUrl.includes("/login") || finalUrl.endsWith("/login/")) {
+    return "TOI redirected to login. Your cookie is expired or not for this TOI base URL.";
+  }
+
+  if (contentType.includes("text/html")) {
+    if (
+      lower.includes("login") ||
+      lower.includes("sign in") ||
+      lower.includes("password") ||
+      lower.includes("logout")
+    ) {
+      return "TOI returned a login/session page instead of a submission result. Refresh cookie and XSRF in settings.json.";
+    }
+    return "TOI returned HTML instead of a submission result. The submit likely did not reach the grader.";
+  }
+
+  if (!meta.ok) return `HTTP ${meta.status}`;
+  return null;
 }
 
 const LANGUAGE_MAP: Record<"c" | "cpp", string> = {
@@ -62,14 +105,27 @@ export async function submitToToi(input: ToiSubmitInput): Promise<ToiSubmitResul
   try {
     const res = await fetch(url, { method: "POST", headers, body: form, redirect: "follow" });
     const text = await res.text();
+    const contentType = res.headers.get("content-type") ?? "";
+    const error = classifyToiSubmitResponse({
+      ok: res.ok,
+      status: res.status,
+      contentType,
+      finalUrl: res.url,
+      redirected: res.redirected,
+      text,
+    });
     let parsed: unknown = text.slice(0, 4000);
     try { parsed = JSON.parse(text); } catch { /* keep as text */ }
     return {
       status: res.status,
       body: parsed,
-      error: res.ok ? null : `HTTP ${res.status}`,
+      error,
+      contentType,
+      finalUrl: res.url,
+      redirected: res.redirected,
+      submitted: error === null,
     };
   } catch (e: any) {
-    return { status: null, body: null, error: e?.message ?? String(e) };
+    return { status: null, body: null, error: e?.message ?? String(e), submitted: false };
   }
 }
