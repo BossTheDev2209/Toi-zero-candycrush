@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 @import "./tokens.css";
 
 @font-face {
@@ -31,6 +32,28 @@ html.dark {
   --color-link: #7AA0FF;
 }
 
+:root {
+  --section-a1-bg: #EEEAE4;
+  --section-a2-bg: #E8DFD3;
+  --section-a3-bg: #DED0BF;
+  --node-surface: rgba(252, 251, 250, 0.62);
+  --node-surface-strong: rgba(252, 251, 250, 0.82);
+  --node-letter: rgba(20, 20, 19, 0.48);
+  --path-shadow: rgba(243, 115, 56, 0.28);
+  --motion-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.dark {
+  --section-a1-bg: #201D19;
+  --section-a2-bg: #26221D;
+  --section-a3-bg: #2B261F;
+  --node-surface: rgba(252, 251, 250, 0.035);
+  --node-surface-strong: rgba(252, 251, 250, 0.07);
+  --node-letter: rgba(240, 237, 233, 0.42);
+  --path-shadow: rgba(255, 139, 74, 0.3);
+}
+
 html, body, #root {
   background-color: var(--color-canvas);
   color: var(--color-ink);
@@ -56,14 +79,153 @@ h3 { font-size: 24px; line-height: 28.8px; }
 html.dark .bg-white { background-color: var(--color-white) !important; }
 
 @keyframes suggested-pulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.04); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 115, 56, 0); }
+  50% { transform: scale(1.045); box-shadow: 0 0 0 10px rgba(243, 115, 56, 0.08); }
 }
 
-.suggested-node {
+.problem-node-orb.is-suggested {
   animation: suggested-pulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
-html.dark .pdf-dark-frame {
-  filter: invert(1) hue-rotate(180deg);
+.section-band {
+  background: var(--section-bg);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-dust) 62%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.28);
+  transition: background-color 240ms var(--motion-smooth), box-shadow 240ms var(--motion-smooth);
+}
+
+.path-search-shell {
+  transition: border-color 220ms var(--motion-smooth), box-shadow 220ms var(--motion-smooth), transform 220ms var(--motion-smooth);
+}
+
+.path-search-shell:focus-within {
+  border-color: color-mix(in srgb, var(--color-signal-light) 60%, var(--color-dust));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06), 0 0 0 4px color-mix(in srgb, var(--color-signal-light) 12%, transparent);
+  transform: translateY(-1px);
+}
+
+.path-line {
+  filter: drop-shadow(0 0 7px var(--path-shadow));
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: path-draw 720ms var(--motion-enter) forwards;
+  animation-delay: var(--path-delay, 0ms);
+}
+
+@keyframes path-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.problem-node-shell {
+  position: absolute;
+  transform: translate(-50%, calc(-50% + 10px)) scale(0.96);
+  opacity: 0;
+  animation: node-enter 520ms var(--motion-enter) forwards;
+  animation-delay: var(--node-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+@keyframes node-enter {
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.problem-node-button {
+  transition: opacity 180ms var(--motion-smooth), transform 180ms var(--motion-smooth);
+}
+
+.problem-node-shell:hover .problem-node-button,
+.problem-node-button:focus-visible {
+  transform: translateY(-4px) scale(1.035);
+}
+
+.problem-node-button:active {
+  transform: translateY(-1px) scale(0.97);
+}
+
+.problem-node-button.is-dimmed {
+  opacity: 0.15;
+}
+
+.problem-node-orb {
+  background: var(--node-surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: background-color 180ms var(--motion-smooth), border-color 180ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth), transform 180ms var(--motion-smooth);
+}
+
+.problem-node-shell:hover .problem-node-orb,
+.problem-node-button:focus-visible .problem-node-orb {
+  background: var(--node-surface-strong);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 18px 44px rgba(0, 0, 0, 0.14);
+}
+
+.node-status-unsolved {
+  border: 1.5px solid color-mix(in srgb, var(--color-dust) 88%, var(--color-ink));
+}
+
+.node-status-attempted {
+  border: 1.5px solid var(--color-signal-light);
+  background: color-mix(in srgb, var(--color-signal-light) 18%, var(--node-surface));
+}
+
+.node-status-eighty {
+  border: 2px solid var(--color-signal-light);
+  background: color-mix(in srgb, var(--color-signal-light) 36%, var(--node-surface));
+}
+
+.node-status-perfect {
+  border: 2.5px solid var(--color-signal-light);
+  background: color-mix(in srgb, var(--color-signal-light) 55%, var(--node-surface));
+}
+
+.node-status-locked {
+  border: 1px dashed color-mix(in srgb, var(--color-dust) 86%, var(--color-ink));
+}
+
+.node-letter {
+  color: var(--node-letter);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.chip-popover {
+  transform-origin: top right;
+  animation: chip-enter 180ms var(--motion-smooth) both;
+}
+
+@keyframes chip-enter {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.motion-press {
+  transition: transform 160ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth), border-color 180ms var(--motion-smooth);
+}
+
+.motion-press:hover {
+  transform: translateY(-1px);
+}
+
+.motion-press:active {
+  transform: translateY(0) scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .path-line {
+    stroke-dashoffset: 0;
+  }
+
+  .problem-node-shell {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }

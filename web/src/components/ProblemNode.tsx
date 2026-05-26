@@ -12,11 +12,11 @@ interface Props {
 }
 
 const RING: Record<ProblemNodeStatus, string> = {
-  unsolved: "border-[1.5px] border-[var(--color-dust)] bg-transparent",
-  attempted: "border-[1.5px] border-[var(--color-signal-light)] bg-[var(--color-signal-light)]/15",
-  eighty: "border-2 border-[var(--color-signal-light)] bg-[var(--color-signal-light)]/35",
-  perfect: "border-[2.5px] border-[var(--color-signal-light)] bg-[var(--color-signal-light)]/55",
-  locked: "border border-dashed border-[var(--color-dust)] bg-transparent",
+  unsolved: "node-status-unsolved",
+  attempted: "node-status-attempted",
+  eighty: "node-status-eighty",
+  perfect: "node-status-perfect",
+  locked: "node-status-locked",
 };
 
 export function ProblemNode({ title, slug, score, status, suggested, matched, size, onClick }: Props) {
@@ -25,20 +25,18 @@ export function ProblemNode({ title, slug, score, status, suggested, matched, si
     <button
       type="button"
       onClick={onClick}
-      className={`group -translate-x-1/2 -translate-y-1/2 rounded-full transition-[opacity,transform] duration-200 active:scale-[0.98] ${
-        suggested ? "suggested-node" : ""
-      } ${matched ? "opacity-100" : "opacity-15"}`}
+      className={`problem-node-button group rounded-full ${matched ? "" : "is-dimmed"}`}
       style={{ width: size, height: size }}
       aria-label={`Open ${slug} ${title}`}
     >
-      <span className={`relative flex h-full w-full items-center justify-center rounded-full ${RING[status]}`}>
+      <span className={`problem-node-orb relative flex h-full w-full items-center justify-center rounded-full ${RING[status]} ${suggested ? "is-suggested" : ""}`}>
         {status === "locked" ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-slate)]">
             <rect x="5" y="10" width="14" height="10" rx="2" />
             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
           </svg>
         ) : (
-          <span className="font-medium tracking-[-0.02em] text-[var(--color-ink)]/30" style={{ fontSize: Math.max(28, size * 0.34) }}>
+          <span className="node-letter font-medium tracking-[-0.02em]" style={{ fontSize: Math.max(28, size * 0.34) }}>
             {letter}
           </span>
         )}

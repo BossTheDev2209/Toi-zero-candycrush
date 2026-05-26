@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import type { Problem, Qualification } from "../lib/types";
@@ -108,7 +108,7 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
               onClick={onAdd}
               title="Add problem"
               aria-label="Add problem"
-              className="grid h-11 w-11 place-items-center rounded-full border-[1.5px] border-[var(--color-ink)] bg-white text-[var(--color-ink)]"
+              className="motion-press grid h-11 w-11 place-items-center rounded-full border-[1.5px] border-[var(--color-ink)] bg-white text-[var(--color-ink)]"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M12 5v14M5 12h14" />
@@ -117,7 +117,7 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
           </div>
         </div>
         <div className="sticky top-24 z-20">
-          <div className="flex items-center gap-3 rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] px-5 py-3 shadow-[var(--shadow-nav)]">
+          <div className="path-search-shell flex items-center gap-3 rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] px-5 py-3 shadow-[var(--shadow-nav)]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-slate)]">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4.3-4.3" />
@@ -168,7 +168,11 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
                     const point = points[idx]!;
                     const matched = !normalizedQuery || `${problem.slug} ${problem.title}`.toLowerCase().includes(normalizedQuery);
                     return (
-                      <div key={problem.id} style={{ position: "absolute", left: point.x, top: point.y }}>
+                      <div
+                        key={problem.id}
+                        className="problem-node-shell"
+                        style={{ left: point.x, top: point.y, "--node-delay": `${Math.min(idx * 42, 720)}ms` } as CSSProperties}
+                      >
                         <ProblemNode
                           title={problem.title}
                           slug={problem.slug}

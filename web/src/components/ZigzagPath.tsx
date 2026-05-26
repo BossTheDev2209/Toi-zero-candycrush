@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { NodePoint } from "../lib/path-geometry";
 
 export function ZigzagPath({ points, height }: { points: NodePoint[]; height: number }) {
@@ -12,7 +13,20 @@ export function ZigzagPath({ points, height }: { points: NodePoint[]; height: nu
           `M ${point.x} ${point.y + point.diameter / 2}`,
           `C ${point.x + bow} ${point.y + 58}, ${next.x + bow} ${next.y - 58}, ${next.x} ${next.y - next.diameter / 2}`,
         ].join(" ");
-        return <path key={idx} d={d} fill="none" stroke="var(--color-signal-light)" strokeWidth="1.25" strokeLinecap="round" opacity="0.82" />;
+        return (
+          <path
+            key={idx}
+            className="path-line"
+            d={d}
+            pathLength={1}
+            fill="none"
+            stroke="var(--color-signal-light)"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            opacity="0.9"
+            style={{ "--path-delay": `${Math.min(idx * 36, 540)}ms` } as CSSProperties}
+          />
+        );
       })}
     </svg>
   );

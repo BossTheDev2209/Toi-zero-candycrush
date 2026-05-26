@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { EyebrowLabel } from "./EyebrowLabel";
 
 interface Props {
@@ -12,14 +12,17 @@ interface Props {
 }
 
 const BG: Record<Props["section"], string> = {
-  A1: "bg-[#F3F0EE] dark:bg-[#1A1815]",
-  A2: "bg-[#ECE6DD] dark:bg-[#1F1C18]",
-  A3: "bg-[#E3D9CB] dark:bg-[#23201B]",
+  A1: "var(--section-a1-bg)",
+  A2: "var(--section-a2-bg)",
+  A3: "var(--section-a3-bg)",
 };
 
 export function SectionBand({ section, title, solved, total, milestone, height, children }: Props) {
   return (
-    <section className={`relative rounded-[40px] ${BG[section]} px-6 pb-20 pt-10`} style={{ minHeight: height }}>
+    <section
+      className="section-band relative rounded-[40px] px-6 pb-20 pt-10"
+      style={{ minHeight: height, "--section-bg": BG[section] } as CSSProperties}
+    >
       <div className="mb-10 pl-2">
         <EyebrowLabel>{section} - {title}</EyebrowLabel>
         <p className="mt-2 text-sm text-[var(--color-slate)]">{solved} / {total} solved · {milestone}</p>

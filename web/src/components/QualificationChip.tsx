@@ -42,14 +42,14 @@ export function QualificationChip({ qualification, onSynced }: { qualification: 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-3 rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] px-5 py-3 text-sm font-medium text-[var(--color-ink)] shadow-[var(--shadow-nav)]"
+        className="motion-press flex items-center gap-3 rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] px-5 py-3 text-sm font-medium text-[var(--color-ink)] shadow-[var(--shadow-nav)]"
       >
         <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
         <span>{qualification.a1Count}/20 A1 · {qualification.a2a3Count}/20 A2+A3</span>
       </button>
 
       {open && (
-        <div className="mt-3 w-[340px] rounded-[28px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-5 shadow-[var(--shadow-card)]">
+        <div className="chip-popover mt-3 w-[340px] rounded-[28px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-5 shadow-[var(--shadow-card)]">
           <div className="flex items-center gap-2 text-sm font-medium">
             <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
             <span>TOI Pre-Camp qualification</span>
