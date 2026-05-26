@@ -70,19 +70,21 @@ export function ProblemNode({
           )}
         </span>
       </button>
-      <div className="problem-node-tip absolute left-1/2 top-[calc(100%+8px)] z-10 w-40 -translate-x-1/2 rounded-[20px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-2 text-center text-[11px] font-medium text-[var(--color-graphite)] opacity-0 shadow-[var(--shadow-nav)] transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <div>{slug} {score > 0 ? `${score}` : ""}</div>
-        {previousYearNote && <div className="mt-1 truncate text-[10px] text-[var(--color-slate)]">{previousYearNote}</div>}
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onTogglePreviousYear();
-          }}
-          className="mt-2 rounded-full border border-[var(--color-dust)] px-2.5 py-1 text-[10px] text-[var(--color-ink)]"
-        >
-          {previousYear ? "Unmark old" : "Mark old"}
-        </button>
+      <div className="problem-node-tip absolute left-1/2 top-full z-10 w-40 -translate-x-1/2 pt-2 text-center text-[11px] font-medium text-[var(--color-graphite)] opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+        <div className="rounded-[20px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-2 shadow-[var(--shadow-nav)]">
+          <div>{slug} {score > 0 ? `${score}` : ""}</div>
+          {previousYearNote && <div className="mt-1 truncate text-[10px] text-[var(--color-slate)]">{previousYearNote}</div>}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onTogglePreviousYear();
+            }}
+            className="mt-2 rounded-full border border-[var(--color-dust)] px-2.5 py-1 text-[10px] text-[var(--color-ink)]"
+          >
+            {previousYear ? "Unmark old" : "Mark old"}
+          </button>
+        </div>
       </div>
     </div>
   );

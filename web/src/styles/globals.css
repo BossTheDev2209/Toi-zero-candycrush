@@ -127,6 +127,24 @@ html.dark .bg-white { background-color: var(--color-white) !important; }
   text-transform: none;
 }
 
+select {
+  color-scheme: light;
+  background-color: var(--color-lifted);
+  color: var(--color-ink);
+}
+
+select option {
+  background-color: var(--color-lifted);
+  color: var(--color-ink);
+}
+
+html.dark select,
+html.dark select option {
+  color-scheme: dark;
+  background-color: var(--color-white);
+  color: var(--color-ink);
+}
+
 .previous-year-badge {
   background: color-mix(in srgb, var(--color-signal-light) 20%, var(--color-lifted));
   border: 1px solid color-mix(in srgb, var(--color-signal-light) 60%, var(--color-dust));
@@ -135,10 +153,23 @@ html.dark .bg-white { background-color: var(--color-white) !important; }
 
 .problem-node-tip {
   pointer-events: none;
+  transform: translateY(-2px);
 }
 
 .problem-node-tip button {
   pointer-events: auto;
+}
+
+.nav-auto-hide {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition: opacity 240ms var(--motion-smooth), transform 280ms var(--motion-smooth);
+  will-change: opacity, transform;
+}
+
+.nav-auto-hide.is-hidden {
+  opacity: 0;
+  transform: translate(-50%, -30px);
 }
 
 .path-search-shell {

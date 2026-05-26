@@ -34,8 +34,8 @@ export function NavPill() {
 
   return (
     <div
-      className={`fixed top-6 left-1/2 z-40 transition-[transform,opacity] duration-300 ease-out ${
-        hidden ? "-translate-x-1/2 -translate-y-24 opacity-0 pointer-events-none" : "-translate-x-1/2 translate-y-0 opacity-100"
+      className={`nav-auto-hide fixed top-6 left-1/2 z-40 ${
+        hidden ? "is-hidden pointer-events-none" : ""
       }`}
     >
       <nav className="bg-white rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-8 px-8 py-3">

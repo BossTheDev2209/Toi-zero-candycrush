@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { EyebrowLabel } from "../components/EyebrowLabel";
 
@@ -48,10 +49,52 @@ const troubleshooting = [
 ];
 
 function CodeBlock({ children }: { children: string }) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+
+  async function copy() {
+    function legacyCopy() {
+      const textarea = document.createElement("textarea");
+      textarea.value = children;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const ok = document.execCommand("copy");
+      textarea.remove();
+      if (!ok) throw new Error("copy failed");
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(children);
+        } catch {
+          legacyCopy();
+        }
+      } else {
+        legacyCopy();
+      }
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+    window.setTimeout(() => setCopyState("idle"), 1400);
+  }
+
   return (
-    <pre className="mt-4 overflow-x-auto rounded-[24px] border border-[var(--color-dust)] bg-[var(--color-bone)] p-5 text-[13px] leading-6 text-[var(--color-ink)]">
-      <code>{children}</code>
-    </pre>
+    <div className="relative mt-4">
+      <button
+        type="button"
+        onClick={copy}
+        className="motion-press absolute right-3 top-3 rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] px-3 py-1 text-[11px] font-bold text-[var(--color-ink)]"
+      >
+        {copyState === "copied" ? "Copied" : copyState === "failed" ? "Failed" : "Copy"}
+      </button>
+      <pre className="overflow-x-auto rounded-[24px] border border-[var(--color-dust)] bg-[var(--color-bone)] p-5 pr-24 text-[13px] leading-6 text-[var(--color-ink)]">
+        <code>{children}</code>
+      </pre>
+    </div>
   );
 }
 
