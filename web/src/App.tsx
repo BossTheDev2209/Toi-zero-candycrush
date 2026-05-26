@@ -3,10 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { NavPill } from "./components/NavPill";
 import { ProblemListPage } from "./pages/ProblemListPage";
 import { ProblemEditModal } from "./pages/ProblemEditModal";
-
-function WorkspacePlaceholder() {
-  return <div className="pt-32 px-12"><h1>Workspace</h1></div>;
-}
+import { ProblemWorkspacePage } from "./pages/ProblemWorkspacePage";
 
 export default function App() {
   const [editing, setEditing] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
@@ -20,7 +17,7 @@ export default function App() {
           path="/"
           element={<ProblemListPage key={refreshKey} onAdd={() => setEditing({ open: true, id: null })} />}
         />
-        <Route path="/p/:id" element={<WorkspacePlaceholder />} />
+        <Route path="/p/:id" element={<ProblemWorkspacePage />} />
       </Routes>
       {editing.open && (
         <ProblemEditModal
