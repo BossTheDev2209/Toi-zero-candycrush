@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getTheme, toggleTheme, type Theme } from "../lib/theme";
 
@@ -7,13 +7,37 @@ export function NavPill() {
   const onHome = loc.pathname === "/";
   const onDocs = loc.pathname === "/docs";
   const [theme, setLocalTheme] = useState<Theme>(getTheme());
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
 
   function flip() {
     setLocalTheme(toggleTheme());
   }
 
+  useEffect(() => {
+    lastY.current = window.scrollY;
+
+    function onScroll() {
+      const currentY = window.scrollY;
+      const movingDown = currentY > lastY.current + 8;
+      const movingUp = currentY < lastY.current - 8;
+
+      if (currentY < 32 || movingUp) setHidden(false);
+      else if (movingDown) setHidden(true);
+
+      lastY.current = currentY;
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-40">
+    <div
+      className={`fixed top-6 left-1/2 z-40 transition-[transform,opacity] duration-300 ease-out ${
+        hidden ? "-translate-x-1/2 -translate-y-24 opacity-0 pointer-events-none" : "-translate-x-1/2 translate-y-0 opacity-100"
+      }`}
+    >
       <nav className="bg-white rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-8 px-8 py-3">
         <Link to="/" className="flex items-center gap-1.5" aria-label="TOIZero home">
           <span className="w-4 h-4 rounded-full bg-[var(--color-mc-red)] -mr-1.5" />
