@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../lib/api";
-import type { ProblemDetail, Language } from "../lib/types";
+import type { ProblemDetail, Language, JudgeResult, RunRow } from "../lib/types";
 import { CodeEditor, starterFor } from "../components/CodeEditor";
 import { MarkdownRender } from "../components/MarkdownRender";
 import { PillButton } from "../components/PillButton";
 import { EyebrowLabel } from "../components/EyebrowLabel";
+import { TestResultsPanel } from "../components/TestResultsPanel";
+import { RunHistoryList } from "../components/RunHistoryList";
 
 export function ProblemWorkspacePage() {
   const { id } = useParams();
@@ -14,18 +16,43 @@ export function ProblemWorkspacePage() {
   const [lang, setLang] = useState<Language>("cpp");
   const [code, setCode] = useState<string>("");
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<JudgeResult | null>(null);
+  const [runs, setRuns] = useState<RunRow[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMsg, setSubmitMsg] = useState<string | null>(null);
 
   useEffect(() => {
     api.getProblem(pid).then(setP);
     api.getSolution(pid).then((s) => {
       if (s) { setLang(s.language); setCode(s.code); }
-      else { setCode(starterFor("cpp")); }
+      else setCode(starterFor("cpp"));
     });
+    api.listRuns(pid).then(setRuns);
   }, [pid]);
 
   async function save() {
     await api.saveSolution(pid, lang, code);
     setSavedMsg("Saved"); setTimeout(() => setSavedMsg(null), 1500);
+  }
+  async function run(scope: "sample" | "all") {
+    setRunning(true);
+    await save();
+    try {
+      const r = await api.runCode(pid, lang, code, scope);
+      setResult(r);
+      setRuns(await api.listRuns(pid));
+    } finally { setRunning(false); }
+  }
+  async function submitToToi() {
+    if (!confirm("Submit this code to the official TOI grader? This sends a real submission.")) return;
+    setSubmitting(true); setSubmitMsg(null);
+    try {
+      const r = await api.submitToToi(pid, lang, code);
+      if (r.error) setSubmitMsg("TOI error: " + r.error);
+      else setSubmitMsg("Submitted to TOI (HTTP " + r.status + "). Check the TOI site for the verdict.");
+    } catch (e: any) { setSubmitMsg("Submit failed: " + (e.message ?? String(e))); }
+    finally { setSubmitting(false); }
   }
 
   if (!p) return <div className="pt-32 px-12">Loading…</div>;
@@ -53,24 +80,38 @@ export function ProblemWorkspacePage() {
           ))}
         </section>
 
-        <section className="bg-white rounded-[40px] p-4 flex flex-col" style={{ height: "80vh" }}>
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center gap-3">
-              <select value={lang} onChange={(e) => setLang(e.target.value as Language)} className="rounded-full border border-[var(--color-dust)] px-4 py-1 text-sm">
-                <option value="cpp">C++</option>
-                <option value="c">C</option>
-              </select>
-              {savedMsg && <span className="text-sm text-[var(--color-slate)]">{savedMsg}</span>}
+        <section className="flex flex-col" style={{ height: "80vh" }}>
+          <div className="bg-white rounded-[40px] p-4 flex flex-col flex-1 min-h-0">
+            <div className="flex items-center justify-between px-4 py-2">
+              <div className="flex items-center gap-3">
+                <select value={lang} onChange={(e) => setLang(e.target.value as Language)} className="rounded-full border border-[var(--color-dust)] px-4 py-1 text-sm">
+                  <option value="cpp">C++</option>
+                  <option value="c">C</option>
+                </select>
+                {savedMsg && <span className="text-sm text-[var(--color-slate)]">{savedMsg}</span>}
+              </div>
+              <div className="flex gap-2">
+                <PillButton variant="secondary" onClick={save}>Save</PillButton>
+                <PillButton onClick={() => run("sample")} disabled={running}>{running ? "Running…" : "Run samples"}</PillButton>
+                <PillButton variant="secondary" onClick={() => run("all")} disabled={running}>Run all</PillButton>
+                <PillButton onClick={submitToToi} disabled={submitting}>{submitting ? "Submitting…" : "Submit to TOI"}</PillButton>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <PillButton variant="secondary" onClick={save}>Save</PillButton>
+            <div className="flex-1 overflow-hidden rounded-[24px] border border-[var(--color-dust)]/40 min-h-0">
+              <CodeEditor language={lang} value={code} onChange={setCode} />
             </div>
-          </div>
-          <div className="flex-1 overflow-hidden rounded-[24px] border border-[var(--color-dust)]/40">
-            <CodeEditor language={lang} value={code} onChange={setCode} />
+            {submitMsg && <div className="px-4 pt-3 text-sm text-[var(--color-slate)]">{submitMsg}</div>}
+            {result && <TestResultsPanel result={result} />}
           </div>
         </section>
       </div>
+
+      <section className="mt-12">
+        <EyebrowLabel>Recent runs</EyebrowLabel>
+        <div className="mt-3 bg-white rounded-[40px] p-4">
+          <RunHistoryList runs={runs} />
+        </div>
+      </section>
     </div>
   );
 }
