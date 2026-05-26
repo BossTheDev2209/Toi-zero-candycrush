@@ -14,7 +14,7 @@ const ExtraTestZ = z.object({
   subtask: z.string().default("main"),
 });
 const ProblemZ = z.object({
-  slug: z.string().min(1).regex(/^[a-z0-9_-]+$/),
+  slug: z.string().min(1).regex(/^[A-Za-z0-9_-]+$/),
   title: z.string().min(1),
   statementMd: z.string().default(""),
   inputMd: z.string().default(""),

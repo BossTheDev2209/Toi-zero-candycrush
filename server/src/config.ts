@@ -12,9 +12,12 @@ export interface AppConfig {
     cpp: { bin: string; flags: string[] };
   };
   toi: {
-    submitUrl: string;
+    baseUrl: string;
     cookie: string;
+    xsrf: string;
     extraHeaders: Record<string, string>;
+    /** Deprecated: prefer baseUrl. Kept for back-compat with older settings.json. */
+    submitUrl?: string;
   };
 }
 
