@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import type { Problem, Qualification } from "../lib/types";
+import type { Problem, ProblemFilterMode, ProblemSortMode, Qualification } from "../lib/types";
 import { nodePoint, problemSection, type ProblemSection } from "../lib/path-geometry";
-import { isSectionLocked, nodeStatus, qualificationFromProblems } from "../lib/status";
+import { filterProblem, isSectionLocked, nodeStatus, qualificationFromProblems, sortProblems } from "../lib/status";
 import { ProblemNode } from "../components/ProblemNode";
 import { ZigzagPath } from "../components/ZigzagPath";
 import { SectionBand } from "../components/SectionBand";
@@ -31,6 +31,8 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
   const [gateProblem, setGateProblem] = useState<Problem | null>(null);
   const [pdfSyncing, setPdfSyncing] = useState(false);
   const [pdfSyncMsg, setPdfSyncMsg] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<ProblemSortMode>("slug");
+  const [filterMode, setFilterMode] = useState<ProblemFilterMode>("all");
 
   const load = useCallback(async () => {
     const list = await api.listProblems();
@@ -44,17 +46,27 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
   const grouped = useMemo(() => {
     const groups: Record<ProblemSection, Problem[]> = { A1: [], A2: [], A3: [] };
     for (const problem of problems ?? []) groups[problemSection(problem.category)].push(problem);
-    for (const section of SECTION_ORDER) groups[section].sort((a, b) => a.slug.localeCompare(b.slug));
     return groups;
   }, [problems]);
 
+  const statusFor = useCallback(
+    (problem: Problem) => nodeStatus(problem, qualification, openedIds),
+    [openedIds, qualification]
+  );
+
+  const sortedGrouped = useMemo(() => ({
+    A1: sortProblems(grouped.A1, sortMode, statusFor),
+    A2: sortProblems(grouped.A2, sortMode, statusFor),
+    A3: sortProblems(grouped.A3, sortMode, statusFor),
+  }), [grouped, sortMode, statusFor]);
+
   const suggestedId = useMemo(() => {
     for (const section of SECTION_ORDER) {
-      const next = grouped[section].find((problem) => nodeStatus(problem, qualification, openedIds) === "unsolved");
+      const next = sortedGrouped[section].find((problem) => nodeStatus(problem, qualification, openedIds) === "unsolved");
       if (next) return next.id;
     }
     return null;
-  }, [grouped, openedIds, qualification]);
+  }, [openedIds, qualification, sortedGrouped]);
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -88,6 +100,18 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
       setPdfSyncMsg(e?.message ?? String(e));
     } finally {
       setPdfSyncing(false);
+    }
+  }
+
+  async function togglePreviousYear(problem: Problem) {
+    const nextFlag = problem.toi_previous_year !== 1;
+    const previousYearNote = nextFlag ? (problem.toi_previous_year_note || "previous year") : "";
+    const result = await api.updateProgressFlags(problem.id, {
+      toiPreviousYear: nextFlag,
+      toiPreviousYearNote: previousYearNote,
+    });
+    if (result.problem) {
+      setProblems((current) => current?.map((p) => p.id === problem.id ? { ...p, ...result.problem } : p) ?? current);
     }
   }
 
@@ -130,6 +154,28 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--color-slate)]"
             />
           </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
+            <label className="path-control-pill">
+              <span>Sort</span>
+              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as ProblemSortMode)}>
+                <option value="slug">Slug</option>
+                <option value="score">Score</option>
+                <option value="status">Status</option>
+                <option value="previous-year">Old first</option>
+                <option value="unsolved-first">Unsolved first</option>
+              </select>
+            </label>
+            <label className="path-control-pill">
+              <span>Filter</span>
+              <select value={filterMode} onChange={(e) => setFilterMode(e.target.value as ProblemFilterMode)}>
+                <option value="all">All</option>
+                <option value="unsolved">Unsolved</option>
+                <option value="80+">80+</option>
+                <option value="100">100</option>
+                <option value="previous-year">Old</option>
+              </select>
+            </label>
+          </div>
           {pdfSyncMsg && <p className="mt-2 px-5 text-xs text-[var(--color-slate)]">{pdfSyncMsg}</p>}
         </div>
       </div>
@@ -147,7 +193,7 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
       {problems !== null && problems.length > 0 && (
         <div className="mx-auto flex max-w-[720px] flex-col gap-4 pb-20">
           {SECTION_ORDER.map((section) => {
-            const sectionProblems = grouped[section];
+            const sectionProblems = sortedGrouped[section];
             if (sectionProblems.length === 0) return null;
             const points = sectionProblems.map((_, idx) => nodePoint(section, idx, sectionProblems.length));
             const height = points.at(-1)!.y + 180;
@@ -166,7 +212,8 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
                   <ZigzagPath points={points} height={height} />
                   {sectionProblems.map((problem, idx) => {
                     const point = points[idx]!;
-                    const matched = !normalizedQuery || `${problem.slug} ${problem.title}`.toLowerCase().includes(normalizedQuery);
+                    const status = nodeStatus(problem, qualification, openedIds);
+                    const matched = filterProblem(problem, filterMode, status, normalizedQuery);
                     return (
                       <div
                         key={problem.id}
@@ -177,11 +224,14 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
                           title={problem.title}
                           slug={problem.slug}
                           score={problem.toi_best_score}
-                          status={nodeStatus(problem, qualification, openedIds)}
+                          status={status}
                           suggested={problem.id === suggestedId}
                           matched={matched}
                           size={point.diameter}
+                          previousYear={problem.toi_previous_year === 1}
+                          previousYearNote={problem.toi_previous_year_note}
                           onClick={() => openProblem(problem)}
+                          onTogglePreviousYear={() => void togglePreviousYear(problem)}
                         />
                       </div>
                     );

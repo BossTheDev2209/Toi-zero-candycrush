@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS problem (
   source_url   TEXT NOT NULL DEFAULT '',
   toi_best_score INTEGER NOT NULL DEFAULT 0,
   toi_last_sync_at TEXT,
+  toi_previous_year INTEGER NOT NULL DEFAULT 0,
+  toi_previous_year_note TEXT NOT NULL DEFAULT '',
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );

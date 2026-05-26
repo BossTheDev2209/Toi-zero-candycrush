@@ -28,6 +28,10 @@ const ProblemZ = z.object({
   sampleTests: z.array(TestZ).default([]),
   extraTests: z.array(ExtraTestZ).default([]),
 });
+const ProgressFlagsZ = z.object({
+  toiPreviousYear: z.boolean(),
+  toiPreviousYearNote: z.string().max(240).default(""),
+});
 
 export function problemsRouter(db: Database, problemsDir?: string) {
   const r = new Hono();
@@ -72,6 +76,15 @@ export function problemsRouter(db: Database, problemsDir?: string) {
     const ok = repo.update(id, body);
     if (!ok) return c.json({ error: "not found" }, 404);
     return c.json({ ok: true });
+  });
+
+  r.patch("/:id/progress-flags", async (c) => {
+    const id = Number(c.req.param("id"));
+    const body = ProgressFlagsZ.parse(await c.req.json());
+    const ok = repo.updateProgressFlags(id, body);
+    if (!ok) return c.json({ error: "not found" }, 404);
+    const p = repo.getById(id);
+    return c.json({ ok: true, problem: p ? withPdf(p) : null });
   });
 
   r.delete("/:id", (c) => {

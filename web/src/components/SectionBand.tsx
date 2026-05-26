@@ -27,7 +27,7 @@ export function SectionBand({ section, title, solved, total, milestone, height, 
         <EyebrowLabel>{section} - {title}</EyebrowLabel>
         <p className="mt-2 text-sm text-[var(--color-slate)]">{solved} / {total} solved · {milestone}</p>
       </div>
-      <div className="pointer-events-none absolute left-6 top-24 text-[96px] font-medium leading-none tracking-[-0.02em] text-[var(--color-whisper)]">
+      <div className="section-watermark pointer-events-none absolute left-6 top-24 text-[96px] font-medium leading-none tracking-[-0.02em]">
         {section}
       </div>
       {children}

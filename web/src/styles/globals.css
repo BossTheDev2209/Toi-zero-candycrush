@@ -33,9 +33,10 @@ html.dark {
 }
 
 :root {
-  --section-a1-bg: #EEEAE4;
-  --section-a2-bg: #E8DFD3;
-  --section-a3-bg: #DED0BF;
+  --section-a1-bg: #E9E2D8;
+  --section-a2-bg: #DED0C0;
+  --section-a3-bg: #D2BFA8;
+  --section-watermark: rgba(20, 20, 19, 0.1);
   --node-surface: rgba(252, 251, 250, 0.62);
   --node-surface-strong: rgba(252, 251, 250, 0.82);
   --node-letter: rgba(20, 20, 19, 0.48);
@@ -48,6 +49,7 @@ html.dark {
   --section-a1-bg: #201D19;
   --section-a2-bg: #26221D;
   --section-a3-bg: #2B261F;
+  --section-watermark: rgba(240, 237, 233, 0.08);
   --node-surface: rgba(252, 251, 250, 0.035);
   --node-surface-strong: rgba(252, 251, 250, 0.07);
   --node-letter: rgba(240, 237, 233, 0.42);
@@ -90,9 +92,53 @@ html.dark .bg-white { background-color: var(--color-white) !important; }
 .section-band {
   background: var(--section-bg);
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--color-dust) 62%, transparent),
-    inset 0 1px 0 rgba(255,255,255,0.28);
+    inset 0 0 0 1.5px color-mix(in srgb, var(--color-dust) 74%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.32),
+    0 18px 44px rgba(20, 20, 19, 0.04);
   transition: background-color 240ms var(--motion-smooth), box-shadow 240ms var(--motion-smooth);
+}
+
+.section-watermark {
+  color: var(--section-watermark);
+}
+
+.path-control-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-dust);
+  border-radius: 999px;
+  background: var(--color-lifted);
+  padding: 6px 10px 6px 14px;
+  color: var(--color-slate);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.path-control-pill select {
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  letter-spacing: 0;
+  outline: none;
+  text-transform: none;
+}
+
+.previous-year-badge {
+  background: color-mix(in srgb, var(--color-signal-light) 20%, var(--color-lifted));
+  border: 1px solid color-mix(in srgb, var(--color-signal-light) 60%, var(--color-dust));
+  color: var(--color-ink);
+}
+
+.problem-node-tip {
+  pointer-events: none;
+}
+
+.problem-node-tip button {
+  pointer-events: auto;
 }
 
 .path-search-shell {

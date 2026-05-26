@@ -12,6 +12,8 @@ export const api = {
     fetch("/api/problems", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ id: number }>),
   updateProblem: (id: number, body: unknown) =>
     fetch(`/api/problems/${id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean }>),
+  updateProgressFlags: (id: number, body: { toiPreviousYear: boolean; toiPreviousYearNote: string }) =>
+    fetch(`/api/problems/${id}/progress-flags`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; problem: Problem | null }>),
   deleteProblem: (id: number) =>
     fetch(`/api/problems/${id}`, { method: "DELETE" }).then(json<{ ok: boolean }>),
   getSolution: (problemId: number) =>

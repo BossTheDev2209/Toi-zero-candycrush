@@ -1,4 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { Database } from "bun:sqlite";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { openDb } from "../../src/db/client";
 import { problemRepo } from "../../src/db/repo/problems";
 import { solutionRepo } from "../../src/db/repo/solutions";
@@ -158,6 +162,72 @@ describe("problemRepo", () => {
     expect(repo.qualification()).toEqual({ a1Count: 19, a2a3Count: 20, qualified: false });
     repo.updateToiScore(a1Ids[0]!, 80, "2026-05-26T05:00:00.000Z");
     expect(repo.qualification()).toEqual({ a1Count: 20, a2a3Count: 20, qualified: true });
+  });
+
+  test("tracks previous-year flag without excluding qualification", () => {
+    const db = openDb(":memory:");
+    const repo = problemRepo(db);
+    const id = repo.create({
+      slug: "A1-099",
+      title: "Old AC",
+      statementMd: "",
+      inputMd: "",
+      outputMd: "",
+      category: "A1",
+      timeLimitMs: 1000,
+      memoryLimitMb: 256,
+      ioMode: "stdio",
+      sourceUrl: "",
+      sampleTests: [],
+      extraTests: [],
+    });
+
+    expect(repo.getById(id)!.toi_previous_year).toBe(0);
+    expect(repo.getById(id)!.toi_previous_year_note).toBe("");
+    expect(repo.updateProgressFlags(id, { toiPreviousYear: true, toiPreviousYearNote: "solved in 2025" })).toBe(true);
+    expect(repo.updateProgressFlags(9999, { toiPreviousYear: true, toiPreviousYearNote: "" })).toBe(false);
+
+    repo.updateToiScore(id, 100, "2026-05-27T00:00:00.000Z");
+    const row = repo.getById(id)!;
+    expect(row.toi_previous_year).toBe(1);
+    expect(row.toi_previous_year_note).toBe("solved in 2025");
+    expect(repo.qualification()).toEqual({ a1Count: 1, a2a3Count: 0, qualified: false });
+  });
+
+  test("migrates older problem tables with previous-year columns", () => {
+    const dir = mkdtempSync(join(tmpdir(), "toizero-migration-"));
+    const path = join(dir, "old.db");
+    try {
+      const oldDb = new Database(path, { create: true });
+      oldDb.exec(`
+        CREATE TABLE problem (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          slug TEXT NOT NULL UNIQUE,
+          title TEXT NOT NULL,
+          statement_md TEXT NOT NULL DEFAULT '',
+          input_md TEXT NOT NULL DEFAULT '',
+          output_md TEXT NOT NULL DEFAULT '',
+          category TEXT NOT NULL DEFAULT 'general',
+          time_limit_ms INTEGER NOT NULL DEFAULT 1000,
+          memory_limit_mb INTEGER NOT NULL DEFAULT 256,
+          io_mode TEXT NOT NULL DEFAULT 'stdio',
+          source_url TEXT NOT NULL DEFAULT '',
+          toi_best_score INTEGER NOT NULL DEFAULT 0,
+          toi_last_sync_at TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+      oldDb.close();
+
+      const migrated = openDb(path);
+      const cols = migrated.query("PRAGMA table_info(problem)").all() as { name: string }[];
+      expect(cols.some((c) => c.name === "toi_previous_year")).toBe(true);
+      expect(cols.some((c) => c.name === "toi_previous_year_note")).toBe(true);
+      migrated.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

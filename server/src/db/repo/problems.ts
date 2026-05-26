@@ -29,6 +29,8 @@ export interface ProblemRow {
   source_url: string;
   toi_best_score: number;
   toi_last_sync_at: string | null;
+  toi_previous_year: 0 | 1;
+  toi_previous_year_note: string;
   created_at: string;
   updated_at: string;
 }
@@ -62,6 +64,11 @@ export function problemRepo(db: Database) {
   const updateToiScoreStmt = db.prepare(
     `UPDATE problem
      SET toi_best_score = max(toi_best_score, ?), toi_last_sync_at = ?, updated_at = datetime('now')
+     WHERE id = ?`
+  );
+  const updateProgressFlagsStmt = db.prepare(
+    `UPDATE problem
+     SET toi_previous_year = ?, toi_previous_year_note = ?, updated_at = datetime('now')
      WHERE id = ?`
   );
   const qualificationStmt = db.prepare(
@@ -135,6 +142,12 @@ export function problemRepo(db: Database) {
     updateToiScore(id: number, score: number, syncedAt: string): boolean {
       const clamped = Math.max(0, Math.min(100, Math.trunc(score)));
       const info = updateToiScoreStmt.run(clamped, syncedAt, id);
+      return info.changes > 0;
+    },
+
+    updateProgressFlags(id: number, input: { toiPreviousYear: boolean; toiPreviousYearNote: string }): boolean {
+      const note = input.toiPreviousYearNote.trim().slice(0, 240);
+      const info = updateProgressFlagsStmt.run(input.toiPreviousYear ? 1 : 0, note, id);
       return info.changes > 0;
     },
 
