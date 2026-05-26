@@ -54,3 +54,16 @@ h3 { font-size: 24px; line-height: 28.8px; }
 
 /* Tailwind bg-white -> tokened so it adapts in dark mode */
 html.dark .bg-white { background-color: var(--color-white) !important; }
+
+@keyframes suggested-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.04); }
+}
+
+.suggested-node {
+  animation: suggested-pulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+html.dark .pdf-dark-frame {
+  filter: invert(1) hue-rotate(180deg);
+}

@@ -32,9 +32,11 @@ const ProblemZ = z.object({
 export function problemsRouter(db: Database, problemsDir?: string) {
   const r = new Hono();
   const repo = problemRepo(db);
+  const runCount = db.prepare("SELECT COUNT(*) AS count FROM run WHERE problem_id = ?");
   const withPdf = <T extends { slug: string }>(problem: T) => ({
     ...problem,
     has_pdf: problemsDir ? hasPdf(problemsDir, problem.slug) : false,
+    local_run_count: Number((runCount.get((problem as T & { id: number }).id) as { count: number } | undefined)?.count ?? 0),
   });
 
   r.get("/", (c) => c.json(repo.listAll().map(withPdf)));

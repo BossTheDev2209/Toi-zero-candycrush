@@ -13,8 +13,28 @@ export interface Problem {
   memory_limit_mb: number;
   io_mode: string;
   source_url: string;
+  toi_best_score: number;
+  toi_last_sync_at: string | null;
+  has_pdf?: boolean;
+  local_run_count?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface Qualification {
+  a1Count: number;
+  a2a3Count: number;
+  qualified: boolean;
+}
+
+export interface ScoreSyncProgress {
+  running: boolean;
+  total: number;
+  done: number;
+  updated: number;
+  failed: { slug: string; error: string }[];
+  startedAt: string | null;
+  finishedAt: string | null;
 }
 
 export interface TestCase {
