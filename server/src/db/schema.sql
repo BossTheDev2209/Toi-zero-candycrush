@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS problem (
   memory_limit_mb INTEGER NOT NULL DEFAULT 256,
   io_mode      TEXT NOT NULL DEFAULT 'stdio' CHECK (io_mode = 'stdio' OR io_mode LIKE 'file:%'),
   source_url   TEXT NOT NULL DEFAULT '',
+  toi_best_score INTEGER NOT NULL DEFAULT 0,
+  toi_last_sync_at TEXT,
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );

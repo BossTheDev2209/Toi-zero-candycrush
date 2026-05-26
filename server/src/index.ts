@@ -6,6 +6,8 @@ import { problemsRouter } from "./api/problems";
 import { solutionsRouter } from "./api/solutions";
 import { runsRouter } from "./api/runs";
 import { toiRouter } from "./api/toi";
+import { pdfRouter } from "./api/pdf";
+import { qualificationRouter } from "./api/qualification";
 import { mkdirSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 
@@ -15,18 +17,22 @@ const resolveRoot = (p: string) => (isAbsolute(p) ? p : join(root, p));
 
 const dataDir = resolveRoot(cfg.dataDir);
 const dbPath = resolveRoot(cfg.dbPath);
+const problemsDir = resolveRoot(cfg.problemsDir);
 
 mkdirSync(dataDir, { recursive: true });
 mkdirSync(dirname(dbPath), { recursive: true });
+mkdirSync(problemsDir, { recursive: true });
 const db = openDb(dbPath);
 
 const app = new Hono();
 app.use("/api/*", cors({ origin: (o) => o ?? "*", credentials: true }));
 app.get("/api/health", (c) => c.json({ ok: true }));
-app.route("/api/problems", problemsRouter(db));
+app.route("/api/problems", pdfRouter(db, cfg, { problemsDir }));
+app.route("/api/problems", problemsRouter(db, problemsDir));
 app.route("/api/solutions", solutionsRouter(db));
 app.route("/api/runs", runsRouter(db));
 app.route("/api/toi", toiRouter(db, cfg));
+app.route("/api/qualification", qualificationRouter(db));
 
 const port = cfg.apiPort;
 console.log(`TOIZero API listening on http://localhost:${port}`);

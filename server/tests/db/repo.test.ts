@@ -105,6 +105,60 @@ describe("problemRepo", () => {
 
     expect(pRepo.delete(9999)).toBe(false);
   });
+
+  test("tracks TOI best score and qualification counts", () => {
+    const db = openDb(":memory:");
+    const repo = problemRepo(db);
+    const a1Ids = Array.from({ length: 21 }, (_, i) =>
+      repo.create({
+        slug: `A1-${String(i + 1).padStart(3, "0")}`,
+        title: `A1 ${i + 1}`,
+        statementMd: "",
+        inputMd: "",
+        outputMd: "",
+        category: "A1",
+        timeLimitMs: 1000,
+        memoryLimitMb: 256,
+        ioMode: "stdio",
+        sourceUrl: "",
+        sampleTests: [],
+        extraTests: [],
+      })
+    );
+    const a2Ids = Array.from({ length: 20 }, (_, i) =>
+      repo.create({
+        slug: `A2-${String(i + 1).padStart(3, "0")}`,
+        title: `A2 ${i + 1}`,
+        statementMd: "",
+        inputMd: "",
+        outputMd: "",
+        category: "A2",
+        timeLimitMs: 1000,
+        memoryLimitMb: 256,
+        ioMode: "stdio",
+        sourceUrl: "",
+        sampleTests: [],
+        extraTests: [],
+      })
+    );
+
+    const first = repo.getById(a1Ids[0]!);
+    expect(first!.toi_best_score).toBe(0);
+    expect(first!.toi_last_sync_at).toBeNull();
+
+    expect(repo.updateToiScore(a1Ids[0]!, 75, "2026-05-26T00:00:00.000Z")).toBe(true);
+    expect(repo.getById(a1Ids[0]!)!.toi_best_score).toBe(75);
+    expect(repo.updateToiScore(a1Ids[0]!, 40, "2026-05-26T01:00:00.000Z")).toBe(true);
+    expect(repo.getById(a1Ids[0]!)!.toi_best_score).toBe(75);
+    expect(repo.updateToiScore(9999, 100, "2026-05-26T02:00:00.000Z")).toBe(false);
+
+    for (const id of a1Ids.slice(1, 20)) repo.updateToiScore(id, 80, "2026-05-26T03:00:00.000Z");
+    for (const id of a2Ids) repo.updateToiScore(id, 100, "2026-05-26T04:00:00.000Z");
+
+    expect(repo.qualification()).toEqual({ a1Count: 19, a2a3Count: 20, qualified: false });
+    repo.updateToiScore(a1Ids[0]!, 80, "2026-05-26T05:00:00.000Z");
+    expect(repo.qualification()).toEqual({ a1Count: 20, a2a3Count: 20, qualified: true });
+  });
 });
 
 describe("solutionRepo", () => {

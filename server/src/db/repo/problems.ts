@@ -27,6 +27,8 @@ export interface ProblemRow {
   memory_limit_mb: number;
   io_mode: string;
   source_url: string;
+  toi_best_score: number;
+  toi_last_sync_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +58,17 @@ export function problemRepo(db: Database) {
   const selectTests = db.prepare(`SELECT * FROM test_case WHERE problem_id = ? ORDER BY kind, subtask, idx`);
   const updateProblem = db.prepare(
     `UPDATE problem SET title=?, statement_md=?, input_md=?, output_md=?, category=?, time_limit_ms=?, memory_limit_mb=?, io_mode=?, source_url=?, updated_at=datetime('now') WHERE id=?`
+  );
+  const updateToiScoreStmt = db.prepare(
+    `UPDATE problem
+     SET toi_best_score = max(toi_best_score, ?), toi_last_sync_at = ?, updated_at = datetime('now')
+     WHERE id = ?`
+  );
+  const qualificationStmt = db.prepare(
+    `SELECT
+      SUM(CASE WHEN category = 'A1' AND toi_best_score >= 80 THEN 1 ELSE 0 END) AS a1Count,
+      SUM(CASE WHEN category IN ('A2', 'A3') AND toi_best_score >= 80 THEN 1 ELSE 0 END) AS a2a3Count
+     FROM problem`
   );
   const deleteTests = db.prepare(`DELETE FROM test_case WHERE problem_id = ?`);
   const deleteProblem = db.prepare(`DELETE FROM problem WHERE id = ?`);
@@ -117,6 +130,19 @@ export function problemRepo(db: Database) {
     delete(id: number): boolean {
       const info = deleteProblem.run(id);
       return info.changes > 0;
+    },
+
+    updateToiScore(id: number, score: number, syncedAt: string): boolean {
+      const clamped = Math.max(0, Math.min(100, Math.trunc(score)));
+      const info = updateToiScoreStmt.run(clamped, syncedAt, id);
+      return info.changes > 0;
+    },
+
+    qualification(): { a1Count: number; a2a3Count: number; qualified: boolean } {
+      const row = qualificationStmt.get() as { a1Count: number | null; a2a3Count: number | null };
+      const a1Count = Number(row.a1Count ?? 0);
+      const a2a3Count = Number(row.a2a3Count ?? 0);
+      return { a1Count, a2a3Count, qualified: a1Count >= 20 && a2a3Count >= 20 };
     },
   };
 }

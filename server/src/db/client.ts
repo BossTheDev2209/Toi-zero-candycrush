@@ -11,5 +11,10 @@ export function openDb(path: string): Database {
   db.exec("PRAGMA foreign_keys = ON;");
   const schema = readFileSync(join(__dirname, "schema.sql"), "utf8");
   db.exec(schema);
+  const cols = db.query("PRAGMA table_info(problem)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "toi_best_score")) {
+    db.exec("ALTER TABLE problem ADD COLUMN toi_best_score INTEGER NOT NULL DEFAULT 0;");
+    db.exec("ALTER TABLE problem ADD COLUMN toi_last_sync_at TEXT;");
+  }
   return db;
 }

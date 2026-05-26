@@ -14,7 +14,7 @@ export interface ToiSubmitInput {
  *  - a raw login cookie value (no "=" present) -> synthesizes "_xsrf=X; 00-pre-toi_login=Y"
  *  - a full Cookie header (contains "=") -> passed through verbatim, with _xsrf ensured
  */
-function buildCookieHeader(cookie: string, xsrf: string): string {
+export function buildCookieHeader(cookie: string, xsrf: string): string {
   if (cookie.includes("=")) {
     // Already a Cookie header. Ensure _xsrf is present.
     if (!/\b_xsrf=/.test(cookie)) {

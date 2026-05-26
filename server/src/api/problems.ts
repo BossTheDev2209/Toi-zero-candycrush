@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { Database } from "bun:sqlite";
 import { problemRepo } from "../db/repo/problems";
+import { hasPdf } from "../db/repo/pdfCache";
 
 const TestZ = z.object({
   input: z.string(),
@@ -28,17 +29,21 @@ const ProblemZ = z.object({
   extraTests: z.array(ExtraTestZ).default([]),
 });
 
-export function problemsRouter(db: Database) {
+export function problemsRouter(db: Database, problemsDir?: string) {
   const r = new Hono();
   const repo = problemRepo(db);
+  const withPdf = <T extends { slug: string }>(problem: T) => ({
+    ...problem,
+    has_pdf: problemsDir ? hasPdf(problemsDir, problem.slug) : false,
+  });
 
-  r.get("/", (c) => c.json(repo.listAll()));
+  r.get("/", (c) => c.json(repo.listAll().map(withPdf)));
 
   r.get("/:id", (c) => {
     const id = Number(c.req.param("id"));
     const p = repo.getById(id);
     if (!p) return c.json({ error: "not found" }, 404);
-    return c.json({ ...p, tests: repo.getTests(id) });
+    return c.json({ ...withPdf(p), tests: repo.getTests(id) });
   });
 
   r.post("/", async (c) => {
