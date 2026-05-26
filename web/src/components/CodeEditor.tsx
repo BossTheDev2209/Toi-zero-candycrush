@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
 import type { Language } from "../lib/types";
 
@@ -8,14 +9,26 @@ const STARTERS: Record<Language, string> = {
 
 export function starterFor(lang: Language) { return STARTERS[lang]; }
 
+function currentTheme(): "vs-light" | "vs-dark" {
+  return document.documentElement.classList.contains("dark") ? "vs-dark" : "vs-light";
+}
+
 export function CodeEditor({ language, value, onChange }: { language: Language; value: string; onChange: (v: string) => void }) {
+  const [theme, setTheme] = useState<"vs-light" | "vs-dark">(currentTheme());
+
+  useEffect(() => {
+    const obs = new MutationObserver(() => setTheme(currentTheme()));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <Editor
       height="100%"
       language={language === "cpp" ? "cpp" : "c"}
       value={value}
       onChange={(v) => onChange(v ?? "")}
-      theme="vs-light"
+      theme={theme}
       options={{
         fontFamily: "JetBrains Mono, Consolas, monospace",
         fontSize: 14,

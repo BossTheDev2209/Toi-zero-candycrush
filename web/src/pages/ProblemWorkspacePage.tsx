@@ -8,6 +8,7 @@ import { PillButton } from "../components/PillButton";
 import { EyebrowLabel } from "../components/EyebrowLabel";
 import { TestResultsPanel } from "../components/TestResultsPanel";
 import { RunHistoryList } from "../components/RunHistoryList";
+import { VerdictGlossary } from "../components/VerdictGlossary";
 
 export function ProblemWorkspacePage() {
   const { id } = useParams();
@@ -106,10 +107,18 @@ export function ProblemWorkspacePage() {
         </section>
       </div>
 
-      <section className="mt-12">
-        <EyebrowLabel>Recent runs</EyebrowLabel>
-        <div className="mt-3 bg-white rounded-[40px] p-4">
-          <RunHistoryList runs={runs} />
+      <section className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div>
+          <EyebrowLabel>Recent runs</EyebrowLabel>
+          <div className="mt-3 bg-white rounded-[40px] p-4">
+            <RunHistoryList runs={runs} />
+          </div>
+        </div>
+        <div>
+          <EyebrowLabel>What verdicts mean</EyebrowLabel>
+          <div className="mt-3">
+            <VerdictGlossary />
+          </div>
         </div>
       </section>
     </div>

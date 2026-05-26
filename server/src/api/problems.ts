@@ -47,6 +47,18 @@ export function problemsRouter(db: Database) {
     return c.json({ id }, 201);
   });
 
+  r.post("/bulk", async (c) => {
+    const body = z.array(ProblemZ).parse(await c.req.json());
+    const existing = new Set(repo.listAll().map((p) => p.slug));
+    let created = 0; let skipped = 0;
+    for (const p of body) {
+      if (existing.has(p.slug)) { skipped += 1; continue; }
+      repo.create(p);
+      created += 1;
+    }
+    return c.json({ created, skipped, total: body.length });
+  });
+
   r.put("/:id", async (c) => {
     const id = Number(c.req.param("id"));
     const body = ProblemZ.parse(await c.req.json());

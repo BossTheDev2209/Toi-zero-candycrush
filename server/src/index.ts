@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { openDb } from "./db/client";
 import { loadConfig } from "./config";
 import { problemsRouter } from "./api/problems";
@@ -20,6 +21,7 @@ mkdirSync(dirname(dbPath), { recursive: true });
 const db = openDb(dbPath);
 
 const app = new Hono();
+app.use("/api/*", cors({ origin: (o) => o ?? "*", credentials: true }));
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/problems", problemsRouter(db));
 app.route("/api/solutions", solutionsRouter(db));
