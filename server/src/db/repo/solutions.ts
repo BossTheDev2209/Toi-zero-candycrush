@@ -1,9 +1,10 @@
 import type { Database } from "bun:sqlite";
+import type { Language } from "../../judge/verdicts";
 
 export interface SolutionRow {
   id: number;
   problem_id: number;
-  language: "c" | "cpp";
+  language: Language;
   code: string;
   updated_at: string;
 }
@@ -19,7 +20,7 @@ export function solutionRepo(db: Database) {
     get(problemId: number): SolutionRow | null {
       return (select.get(problemId) as SolutionRow | null) ?? null;
     },
-    upsert(problemId: number, language: "c" | "cpp", code: string): void {
+    upsert(problemId: number, language: Language, code: string): void {
       upsert.run(problemId, language, code);
     },
   };

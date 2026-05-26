@@ -1,8 +1,9 @@
 import type { Database } from "bun:sqlite";
+import type { Language } from "../../judge/verdicts";
 
 export interface CreateToiSubmissionInput {
   problemId: number;
-  language: "c" | "cpp";
+  language: Language;
   codeSnapshot: string;
   httpStatus: number | null;
   responseJson: string | null;

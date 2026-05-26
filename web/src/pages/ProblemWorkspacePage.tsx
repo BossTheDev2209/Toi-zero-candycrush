@@ -44,6 +44,23 @@ export function ProblemWorkspacePage() {
     await api.saveSolution(pid, lang, code);
     setSavedMsg("Saved"); setTimeout(() => setSavedMsg(null), 1500);
   }
+  function changeLanguage(next: Language) {
+    setCode((current) => current === starterFor(lang) ? starterFor(next) : current);
+    setLang(next);
+  }
+  function downloadCode() {
+    if (!p) return;
+    const ext: Record<Language, string> = { cpp: "cpp", c: "c", py: "py" };
+    const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${p.slug}.${ext[lang]}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
   async function run(scope: "sample" | "all") {
     setRunning(true);
     await save();
@@ -86,7 +103,7 @@ export function ProblemWorkspacePage() {
     <div className="pt-28 px-6 max-w-[1600px] mx-auto">
       <div className="mb-2"><Link to="/" className="text-[var(--color-link)] text-sm">← Problems</Link></div>
       <EyebrowLabel>{p.category}</EyebrowLabel>
-      <h1 className="mt-2 mb-8">{p.title}</h1>
+      <h1 className="mt-2 mb-8">{p.slug} - {p.title}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <section className="flex max-h-[80vh] flex-col rounded-[40px] bg-white p-6">
@@ -147,14 +164,16 @@ export function ProblemWorkspacePage() {
           <div className="bg-white rounded-[40px] p-4 flex flex-col flex-1 min-h-0">
             <div className="flex items-center justify-between px-4 py-2">
               <div className="flex items-center gap-3">
-                <select value={lang} onChange={(e) => setLang(e.target.value as Language)} className="rounded-full border border-[var(--color-dust)] px-4 py-1 text-sm">
+                <select value={lang} onChange={(e) => changeLanguage(e.target.value as Language)} className="rounded-full border border-[var(--color-dust)] px-4 py-1 text-sm">
                   <option value="cpp">C++</option>
                   <option value="c">C</option>
+                  <option value="py">Python</option>
                 </select>
                 {savedMsg && <span className="text-sm text-[var(--color-slate)]">{savedMsg}</span>}
               </div>
               <div className="flex gap-2">
                 <PillButton variant="secondary" onClick={save}>Save</PillButton>
+                <PillButton variant="secondary" onClick={downloadCode}>Download</PillButton>
                 <PillButton onClick={() => run("sample")} disabled={running}>{running ? "Running…" : "Run samples"}</PillButton>
                 <PillButton variant="secondary" onClick={() => run("all")} disabled={running}>Run all</PillButton>
                 <PillButton onClick={submitToToi} disabled={submitting}>{submitting ? "Submitting…" : "Submit to TOI"}</PillButton>

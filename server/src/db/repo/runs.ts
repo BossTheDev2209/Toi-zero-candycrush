@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import type { Language } from "../../judge/verdicts";
 
 export type Verdict = "AC" | "WA" | "TLE" | "RE" | "CE";
 
@@ -12,7 +13,7 @@ export interface PerTestResult {
 
 export interface CreateRunInput {
   problemId: number;
-  language: "c" | "cpp";
+  language: Language;
   codeSnapshot: string;
   verdict: Verdict;
   totalRuntimeMs: number;
@@ -22,7 +23,7 @@ export interface CreateRunInput {
 export interface RunRow {
   id: number;
   problem_id: number;
-  language: "c" | "cpp";
+  language: Language;
   code_snapshot: string;
   verdict: Verdict;
   total_runtime_ms: number;

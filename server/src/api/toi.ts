@@ -8,7 +8,7 @@ import { submitToToi } from "../toi/submit";
 import { fetchBestScore } from "../toi/scrapeScores";
 
 const SubmitZ = z.object({
-  language: z.enum(["c", "cpp"]),
+  language: z.enum(["c", "cpp", "py"]),
   code: z.string(),
 });
 

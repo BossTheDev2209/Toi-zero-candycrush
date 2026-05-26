@@ -1,4 +1,4 @@
-export type Language = "c" | "cpp";
+export type Language = "c" | "cpp" | "py";
 export type Verdict = "AC" | "WA" | "TLE" | "RE" | "CE";
 
 export interface Problem {

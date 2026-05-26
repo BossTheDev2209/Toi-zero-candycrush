@@ -146,9 +146,15 @@ html.dark select option {
 }
 
 .previous-year-badge {
-  background: color-mix(in srgb, var(--color-signal-light) 20%, var(--color-lifted));
-  border: 1px solid color-mix(in srgb, var(--color-signal-light) 60%, var(--color-dust));
+  background: #D7F2F0;
+  border: 1px solid #49B8AE;
   color: var(--color-ink);
+}
+
+html.dark .previous-year-badge {
+  background: #174D4A;
+  border-color: #5AD8CC;
+  color: #EAFDFC;
 }
 
 .problem-node-tip {
@@ -265,6 +271,26 @@ html.dark select option {
 .node-letter {
   color: var(--node-letter);
   text-shadow: 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.problem-node-orb.is-previous-year {
+  border-color: #25A79E;
+  background: #D7F2F0;
+  box-shadow: inset 0 0 0 3px rgba(37, 167, 158, 0.12), 0 18px 42px rgba(37, 167, 158, 0.16);
+}
+
+html.dark .problem-node-orb.is-previous-year {
+  border-color: #5AD8CC;
+  background: #173D3B;
+  box-shadow: inset 0 0 0 3px rgba(90, 216, 204, 0.16), 0 18px 42px rgba(0, 0, 0, 0.24);
+}
+
+.problem-node-orb.is-previous-year .node-letter {
+  color: #0F615C;
+}
+
+html.dark .problem-node-orb.is-previous-year .node-letter {
+  color: #B8F4EF;
 }
 
 .chip-popover {

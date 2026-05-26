@@ -5,6 +5,7 @@ import type { Language } from "../lib/types";
 const STARTERS: Record<Language, string> = {
   cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}\n`,
   c:   `#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}\n`,
+  py:  `import sys\n\n\ndef main():\n    data = sys.stdin.read()\n    \n\nif __name__ == "__main__":\n    main()\n`,
 };
 
 export function starterFor(lang: Language) { return STARTERS[lang]; }
@@ -25,7 +26,7 @@ export function CodeEditor({ language, value, onChange }: { language: Language; 
   return (
     <Editor
       height="100%"
-      language={language === "cpp" ? "cpp" : "c"}
+      language={language === "py" ? "python" : language === "cpp" ? "cpp" : "c"}
       value={value}
       onChange={(v) => onChange(v ?? "")}
       theme={theme}

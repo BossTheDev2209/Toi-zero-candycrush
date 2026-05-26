@@ -33,7 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_test_case_problem ON test_case(problem_id);
 CREATE TABLE IF NOT EXISTS solution (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   problem_id INTEGER NOT NULL UNIQUE REFERENCES problem(id) ON DELETE CASCADE,
-  language   TEXT NOT NULL CHECK (language IN ('c', 'cpp')),
+  language   TEXT NOT NULL CHECK (language IN ('c', 'cpp', 'py')),
   code       TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS solution (
 CREATE TABLE IF NOT EXISTS run (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   problem_id      INTEGER NOT NULL REFERENCES problem(id) ON DELETE CASCADE,
-  language        TEXT NOT NULL CHECK (language IN ('c', 'cpp')),
+  language        TEXT NOT NULL CHECK (language IN ('c', 'cpp', 'py')),
   code_snapshot   TEXT NOT NULL,
   verdict         TEXT NOT NULL CHECK (verdict IN ('AC', 'WA', 'TLE', 'RE', 'CE')),
   total_runtime_ms INTEGER NOT NULL DEFAULT 0,
@@ -53,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_run_problem ON run(problem_id, created_at DESC);
 CREATE TABLE IF NOT EXISTS toi_submission (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   problem_id    INTEGER NOT NULL REFERENCES problem(id) ON DELETE CASCADE,
-  language      TEXT NOT NULL CHECK (language IN ('c', 'cpp')),
+  language      TEXT NOT NULL CHECK (language IN ('c', 'cpp', 'py')),
   code_snapshot TEXT NOT NULL,
   http_status   INTEGER,
   response_json TEXT,

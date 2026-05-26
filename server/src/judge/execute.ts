@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 
 export interface ExecuteInput {
   binaryPath: string;
+  args?: string[];
   stdin: string;
   timeoutMs: number;
   workdir: string;
@@ -18,7 +19,7 @@ export interface ExecuteResult {
 export async function execute(input: ExecuteInput): Promise<ExecuteResult> {
   return new Promise((resolve) => {
     const start = performance.now();
-    const proc = spawn(input.binaryPath, [], {
+    const proc = spawn(input.binaryPath, input.args ?? [], {
       cwd: input.workdir,
       stdio: ["pipe", "pipe", "pipe"],
     });

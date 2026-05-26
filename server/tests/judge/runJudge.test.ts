@@ -9,6 +9,7 @@ const waCode = readFileSync(join(FIX, "wa.cpp"), "utf8");
 const tleCode = readFileSync(join(FIX, "tle.cpp"), "utf8");
 const ceCode = readFileSync(join(FIX, "ce.cpp"), "utf8");
 const fileIoCode = readFileSync(join(FIX, "file_io.cpp"), "utf8");
+const pythonEchoCode = readFileSync(join(FIX, "stdio_echo.py"), "utf8");
 
 describe("runJudge stdio mode", () => {
   test("AC across all sample tests", async () => {
@@ -61,6 +62,18 @@ describe("runJudge stdio mode", () => {
     expect(r.verdict).toBe("CE");
     expect(r.compileStderr).toBeTruthy();
     expect(r.perTest.length).toBe(0);
+  });
+
+  test("runs Python solutions", async () => {
+    const r = await runJudge({
+      language: "py",
+      code: pythonEchoCode,
+      timeLimitMs: 1000,
+      ioMode: "stdio",
+      tests: [{ idx: 0, input: "python\n", expected: "python\n" }],
+    });
+    expect(r.verdict).toBe("AC");
+    expect(r.perTest[0]!.verdict).toBe("AC");
   });
 });
 

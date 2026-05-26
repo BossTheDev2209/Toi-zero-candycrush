@@ -4,7 +4,7 @@ export interface ToiSubmitInput {
   xsrf: string;           // _xsrf token (form field + matches cookie)
   extraHeaders: Record<string, string>;
   slug: string;           // TOI task slug, e.g. "A1-001"
-  language: "c" | "cpp";
+  language: "c" | "cpp" | "py";
   code: string;
 }
 
@@ -75,14 +75,16 @@ export function classifyToiSubmitResponse(meta: ToiSubmitResponseMeta): string |
   return null;
 }
 
-const LANGUAGE_MAP: Record<"c" | "cpp", string> = {
+const LANGUAGE_MAP: Record<"c" | "cpp" | "py", string> = {
   cpp: "C++17 / g++",
   c:   "C11 / gcc",
+  py:  "Python 3",
 };
 
-const FILE_EXT: Record<"c" | "cpp", string> = {
+const FILE_EXT: Record<"c" | "cpp" | "py", string> = {
   cpp: "cpp",
   c:   "c",
+  py:  "py",
 };
 
 export async function submitToToi(input: ToiSubmitInput): Promise<ToiSubmitResult> {

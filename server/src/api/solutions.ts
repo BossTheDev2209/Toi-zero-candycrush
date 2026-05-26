@@ -4,7 +4,7 @@ import type { Database } from "bun:sqlite";
 import { solutionRepo } from "../db/repo/solutions";
 
 const SaveZ = z.object({
-  language: z.enum(["c", "cpp"]),
+  language: z.enum(["c", "cpp", "py"]),
   code: z.string(),
 });
 

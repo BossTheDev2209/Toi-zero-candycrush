@@ -45,7 +45,7 @@ export function ProblemNode({
         style={{ width: size, height: size }}
         aria-label={`Open ${slug} ${title}`}
       >
-        <span className={`problem-node-orb relative flex h-full w-full items-center justify-center rounded-full ${RING[status]} ${suggested ? "is-suggested" : ""}`}>
+        <span className={`problem-node-orb relative flex h-full w-full items-center justify-center rounded-full ${RING[status]} ${suggested ? "is-suggested" : ""} ${previousYear ? "is-previous-year" : ""}`}>
           {status === "locked" ? (
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-slate)]">
               <rect x="5" y="10" width="14" height="10" rx="2" />

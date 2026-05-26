@@ -84,6 +84,7 @@ export async function runJudge(input: JudgeInput): Promise<JudgeResult> {
 
       const r = await execute({
         binaryPath: c.binaryPath,
+        args: c.args,
         stdin,
         timeoutMs: input.timeLimitMs,
         workdir: wd,

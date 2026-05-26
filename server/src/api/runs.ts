@@ -6,7 +6,7 @@ import { runRepo } from "../db/repo/runs";
 import { runJudge } from "../judge/runJudge";
 
 const RunZ = z.object({
-  language: z.enum(["c", "cpp"]),
+  language: z.enum(["c", "cpp", "py"]),
   code: z.string(),
   scope: z.enum(["sample", "all"]).default("sample"),
 });

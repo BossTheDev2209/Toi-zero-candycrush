@@ -98,7 +98,7 @@ describe("problemRepo", () => {
       sampleTests: [{ input: "x", expected: "x", explanationMd: "" }],
       extraTests: [],
     });
-    sRepo.upsert(id, "cpp", "int main(){}");
+    sRepo.upsert(id, "py", "print('ok')");
     rRepo.create({ problemId: id, language: "cpp", codeSnapshot: "x", verdict: "AC", totalRuntimeMs: 0, perTest: [] });
 
     expect(pRepo.delete(id)).toBe(true);
@@ -240,8 +240,9 @@ describe("solutionRepo", () => {
     const sRepo = solutionRepo(db);
     sRepo.upsert(id, "cpp", "int main(){}");
     expect(sRepo.get(id)?.code).toBe("int main(){}");
-    sRepo.upsert(id, "cpp", "int main(){return 0;}");
-    expect(sRepo.get(id)?.code).toBe("int main(){return 0;}");
+    sRepo.upsert(id, "py", "print('ok')");
+    expect(sRepo.get(id)?.language).toBe("py");
+    expect(sRepo.get(id)?.code).toBe("print('ok')");
   });
 });
 
@@ -264,5 +265,23 @@ describe("runRepo", () => {
     const recent = rRepo.listRecent(id, 5);
     expect(recent.length).toBe(1);
     expect(recent[0]!.verdict).toBe("AC");
+  });
+
+  test("accepts Python run rows", () => {
+    const db = openDb(":memory:");
+    const pRepo = problemRepo(db);
+    const id = pRepo.create({ slug: "py", title: "Py", statementMd: "", inputMd: "", outputMd: "", category: "x", timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "", sampleTests: [], extraTests: [] });
+
+    const rRepo = runRepo(db);
+    rRepo.create({
+      problemId: id,
+      language: "py",
+      codeSnapshot: "print('ok')",
+      verdict: "AC",
+      totalRuntimeMs: 12,
+      perTest: [{ idx: 0, verdict: "AC", runtimeMs: 12, stderr: "" }],
+    });
+
+    expect(rRepo.listRecent(id, 5)[0]!.language).toBe("py");
   });
 });
