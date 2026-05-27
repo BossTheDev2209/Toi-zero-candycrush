@@ -38,4 +38,22 @@ export const api = {
     fetch("/api/toi/sync-counts", { method: "POST" }).then(
       json<{ ok: true; seen: number; updated: number; notFoundInDb: string[]; uncounted: number } | { ok: false; error: string }>,
     ),
+  getAiStatus: () => fetch("/api/ai/status").then(json<{ provider: string; model: string; hasKey: boolean }>),
+  saveAiSettings: (body: {
+    provider: "anthropic" | "openai" | "ollama";
+    anthropicApiKey?: string;
+    anthropicModel?: string;
+    openaiApiKey?: string;
+    openaiModel?: string;
+    ollamaUrl?: string;
+    ollamaModel?: string;
+    maxTokens?: number;
+  }) =>
+    fetch("/api/ai/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; provider: string }>),
+  getAiHistory: (problemId: number) =>
+    fetch(`/api/ai/history/${problemId}`).then(json<{ messages: { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; created_at: string }[] }>),
+  clearAiHistory: (problemId: number) =>
+    fetch(`/api/ai/history/${problemId}`, { method: "DELETE" }).then(json<{ deleted: number }>),
+  askAi: (body: { problemId: number; message: string; forceFullSolution?: boolean }) =>
+    fetch("/api/ai/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; text?: string; provider?: string; model?: string; tokensIn?: number; tokensOut?: number; error?: string }>),
 };

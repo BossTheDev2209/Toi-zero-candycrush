@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { Database } from "bun:sqlite";
 import type { AppConfig } from "../config";
+import { persistAiUpdate } from "../config";
 import { problemRepo } from "../db/repo/problems";
 import { solutionRepo } from "../db/repo/solutions";
 import { runRepo } from "../db/repo/runs";
@@ -13,6 +14,17 @@ const AskZ = z.object({
   problemId: z.number().int().positive(),
   message: z.string().min(1),
   forceFullSolution: z.boolean().default(false),
+});
+
+const AiSettingsZ = z.object({
+  provider: z.enum(["anthropic", "openai", "ollama"]),
+  anthropicApiKey: z.string().optional(),
+  anthropicModel: z.string().optional(),
+  openaiApiKey: z.string().optional(),
+  openaiModel: z.string().optional(),
+  ollamaUrl: z.string().optional(),
+  ollamaModel: z.string().optional(),
+  maxTokens: z.number().int().positive().optional(),
 });
 
 export function aiRouter(db: Database, cfg: AppConfig) {
@@ -119,6 +131,12 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       tokensIn: result.tokensIn,
       tokensOut: result.tokensOut,
     });
+  });
+
+  r.post("/settings", async (c) => {
+    const body = AiSettingsZ.parse(await c.req.json());
+    persistAiUpdate(cfg, body);
+    return c.json({ ok: true, provider: body.provider });
   });
 
   return r;
