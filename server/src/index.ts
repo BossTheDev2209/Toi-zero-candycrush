@@ -6,6 +6,7 @@ import { problemsRouter } from "./api/problems";
 import { solutionsRouter } from "./api/solutions";
 import { runsRouter } from "./api/runs";
 import { toiRouter } from "./api/toi";
+import { aiRouter } from "./api/ai";
 import { pdfRouter } from "./api/pdf";
 import { qualificationRouter } from "./api/qualification";
 import { mkdirSync } from "node:fs";
@@ -32,6 +33,7 @@ app.route("/api/problems", problemsRouter(db, problemsDir));
 app.route("/api/solutions", solutionsRouter(db));
 app.route("/api/runs", runsRouter(db));
 app.route("/api/toi", toiRouter(db, cfg));
+app.route("/api/ai", aiRouter(db, cfg));
 app.route("/api/qualification", qualificationRouter(db));
 
 const port = cfg.apiPort;
