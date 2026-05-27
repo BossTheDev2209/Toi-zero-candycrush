@@ -9,7 +9,7 @@
   src: local("Sofia Sans"), url("/fonts/sofia-sans-variable.woff2") format("woff2");
 }
 
-/* Dark mode token overrides — applied when <html class="dark"> */
+/* Dark mode token overrides: applied when <html class="dark"> */
 html.dark {
   --color-canvas: #1A1815;
   --color-lifted: #222220;
@@ -33,9 +33,23 @@ html.dark {
 }
 
 :root {
-  --section-a1-bg: #E9E2D8;
-  --section-a2-bg: #DED0C0;
-  --section-a3-bg: #D2BFA8;
+  --color-success: oklch(52% 0.12 145);
+  --color-success-soft: oklch(92% 0.045 145);
+  --color-warning: oklch(61% 0.135 70);
+  --color-warning-soft: oklch(92% 0.05 70);
+  --color-danger: oklch(48% 0.16 29);
+  --color-danger-soft: oklch(92% 0.052 29);
+  --color-info: oklch(50% 0.12 252);
+  --color-info-soft: oklch(92% 0.042 252);
+  --color-focus-ring: oklch(66% 0.16 56);
+  --color-selection-tint: color-mix(in srgb, var(--color-signal-light) 14%, var(--color-lifted));
+  --color-panel-glow: color-mix(in srgb, var(--color-signal-light) 18%, transparent);
+  --section-a1-bg: oklch(90% 0.024 72);
+  --section-a2-bg: oklch(86% 0.038 54);
+  --section-a3-bg: oklch(83% 0.04 96);
+  --section-a1-accent: oklch(63% 0.14 63);
+  --section-a2-accent: oklch(56% 0.15 38);
+  --section-a3-accent: oklch(51% 0.1 126);
   --section-watermark: rgba(20, 20, 19, 0.1);
   --node-surface: rgba(252, 251, 250, 0.62);
   --node-surface-strong: rgba(252, 251, 250, 0.82);
@@ -53,13 +67,27 @@ html.dark {
 }
 
 html.dark {
-  --section-a1-bg: #201D19;
-  --section-a2-bg: #26221D;
-  --section-a3-bg: #2B261F;
+  --color-success: oklch(74% 0.13 145);
+  --color-success-soft: oklch(28% 0.045 145);
+  --color-warning: oklch(76% 0.135 70);
+  --color-warning-soft: oklch(29% 0.045 70);
+  --color-danger: oklch(70% 0.15 29);
+  --color-danger-soft: oklch(28% 0.045 29);
+  --color-info: oklch(76% 0.11 252);
+  --color-info-soft: oklch(29% 0.04 252);
+  --color-focus-ring: oklch(75% 0.15 56);
+  --color-selection-tint: color-mix(in srgb, var(--color-signal-light) 16%, var(--color-white));
+  --color-panel-glow: color-mix(in srgb, var(--color-signal-light) 20%, transparent);
+  --section-a1-bg: oklch(23% 0.02 72);
+  --section-a2-bg: oklch(25% 0.03 54);
+  --section-a3-bg: oklch(26% 0.03 96);
+  --section-a1-accent: oklch(74% 0.14 63);
+  --section-a2-accent: oklch(70% 0.14 38);
+  --section-a3-accent: oklch(72% 0.11 126);
   --section-watermark: rgba(240, 237, 233, 0.08);
-  --node-surface: rgba(252, 251, 250, 0.035);
-  --node-surface-strong: rgba(252, 251, 250, 0.07);
-  --node-letter: rgba(240, 237, 233, 0.42);
+  --node-surface: rgba(252, 251, 250, 0.1);
+  --node-surface-strong: rgba(252, 251, 250, 0.18);
+  --node-letter: rgba(240, 237, 233, 0.72);
   --path-shadow: rgba(255, 139, 74, 0.3);
   --code-bg: #141210;
   --code-text: #F3F0EE;
@@ -83,6 +111,10 @@ html, body, #root {
   transition: background-color 200ms ease, color 200ms ease;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 h1, h2, h3, h4 {
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -93,6 +125,11 @@ h3 { font-size: 24px; line-height: 28.8px; }
 
 /* Tailwind bg-white -> tokened so it adapts in dark mode */
 html.dark .bg-white { background-color: var(--color-white) !important; }
+
+:is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
 
 @keyframes suggested-pulse {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 115, 56, 0); }
@@ -106,10 +143,17 @@ html.dark .bg-white { background-color: var(--color-white) !important; }
 .section-band {
   background: var(--section-bg);
   box-shadow:
-    inset 0 0 0 1.5px color-mix(in srgb, var(--color-dust) 74%, transparent),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--section-accent) 38%, var(--color-dust)),
     inset 0 1px 0 rgba(255,255,255,0.32),
     0 18px 44px rgba(20, 20, 19, 0.04);
-  transition: background-color 240ms var(--motion-smooth), box-shadow 240ms var(--motion-smooth);
+  transition: background-color 240ms var(--motion-smooth), box-shadow 240ms var(--motion-smooth), transform 240ms var(--motion-smooth);
+}
+
+.section-band:hover {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--section-accent) 62%, var(--color-dust)),
+    inset 0 1px 0 rgba(255,255,255,0.34),
+    0 24px 56px color-mix(in srgb, var(--section-accent) 14%, transparent);
 }
 
 .section-watermark {
@@ -180,6 +224,47 @@ html.dark select option {
   will-change: opacity, transform;
 }
 
+.nav-shell {
+  transition: box-shadow 220ms var(--motion-smooth), background-color 220ms var(--motion-smooth);
+}
+
+.nav-shell:hover {
+  box-shadow: 0 10px 34px color-mix(in srgb, var(--color-ink) 9%, transparent);
+}
+
+.nav-link {
+  position: relative;
+  border-radius: 999px;
+  margin-inline: -10px;
+  padding: 6px 10px;
+  transition: color 180ms var(--motion-smooth), background-color 180ms var(--motion-smooth), transform 180ms var(--motion-smooth);
+}
+
+.nav-link::after {
+  position: absolute;
+  right: 10px;
+  bottom: 2px;
+  left: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-signal-light);
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.35);
+  transition: opacity 180ms var(--motion-smooth), transform 180ms var(--motion-smooth);
+}
+
+.nav-link:hover {
+  background: var(--color-selection-tint);
+  transform: translateY(-1px);
+}
+
+.nav-link.is-active::after,
+.nav-link:hover::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
 .nav-auto-hide.is-hidden {
   opacity: 0;
   transform: translate(-50%, -30px);
@@ -187,6 +272,17 @@ html.dark select option {
 
 .path-search-shell {
   transition: border-color 220ms var(--motion-smooth), box-shadow 220ms var(--motion-smooth), transform 220ms var(--motion-smooth);
+}
+
+.path-control-pill {
+  transition: border-color 180ms var(--motion-smooth), background-color 180ms var(--motion-smooth), transform 180ms var(--motion-smooth);
+}
+
+.path-control-pill:hover,
+.path-control-pill:focus-within {
+  border-color: color-mix(in srgb, var(--color-signal-light) 52%, var(--color-dust));
+  background: var(--color-selection-tint);
+  transform: translateY(-1px);
 }
 
 .path-search-shell:focus-within {
@@ -257,18 +353,18 @@ html.dark select option {
 }
 
 .node-status-attempted {
-  border: 1.5px solid var(--color-signal-light);
-  background: color-mix(in srgb, var(--color-signal-light) 18%, var(--node-surface));
+  border: 1.5px solid var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning-soft) 64%, var(--node-surface));
 }
 
 .node-status-eighty {
-  border: 2px solid var(--color-signal-light);
-  background: color-mix(in srgb, var(--color-signal-light) 36%, var(--node-surface));
+  border: 2px solid var(--color-success);
+  background: color-mix(in srgb, var(--color-success-soft) 72%, var(--node-surface));
 }
 
 .node-status-perfect {
-  border: 2.5px solid var(--color-signal-light);
-  background: color-mix(in srgb, var(--color-signal-light) 55%, var(--node-surface));
+  border: 2.5px solid var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 18%, var(--color-success-soft));
 }
 
 .node-status-locked {
@@ -311,15 +407,162 @@ html.dark .uncounted-badge {
 }
 
 .motion-press {
-  transition: transform 160ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth), border-color 180ms var(--motion-smooth);
+  transition: transform 160ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth), border-color 180ms var(--motion-smooth), background-color 180ms var(--motion-smooth), color 180ms var(--motion-smooth);
 }
 
 .motion-press:hover {
   transform: translateY(-1px);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--color-ink) 10%, transparent);
 }
 
 .motion-press:active {
   transform: translateY(0) scale(0.97);
+}
+
+.motion-press:disabled,
+.motion-press:disabled:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.motion-surface {
+  transition: border-color 220ms var(--motion-smooth), box-shadow 220ms var(--motion-smooth), transform 220ms var(--motion-smooth), background-color 220ms var(--motion-smooth);
+}
+
+.motion-surface:hover {
+  border-color: color-mix(in srgb, var(--color-signal-light) 38%, var(--color-dust));
+  box-shadow: 0 22px 48px color-mix(in srgb, var(--color-ink) 7%, transparent);
+  transform: translateY(-1px);
+}
+
+.palette-backdrop {
+  animation: palette-backdrop-in 160ms var(--motion-smooth) both;
+}
+
+.palette-dialog {
+  animation: palette-dialog-in 220ms var(--motion-enter) both;
+}
+
+.palette-option {
+  transition: background-color 150ms var(--motion-smooth), box-shadow 150ms var(--motion-smooth), transform 150ms var(--motion-smooth);
+}
+
+.palette-option:hover,
+.palette-option[aria-selected="true"] {
+  background: var(--color-selection-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-signal-light) 28%, transparent);
+}
+
+.palette-option[aria-selected="true"] {
+  transform: translateX(3px);
+}
+
+.palette-source {
+  border: 1px solid color-mix(in srgb, currentColor 34%, transparent);
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.palette-source.problem { color: var(--color-signal); background: color-mix(in srgb, var(--color-signal-light) 12%, transparent); }
+.palette-source.cheat { color: var(--color-info); background: color-mix(in srgb, var(--color-info) 12%, transparent); }
+.palette-source.docs { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 12%, transparent); }
+
+.ai-help-tab {
+  transition: transform 180ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth), background-color 180ms var(--motion-smooth), border-color 180ms var(--motion-smooth);
+}
+
+.ai-help-tab:hover {
+  background: var(--color-selection-tint);
+  border-color: color-mix(in srgb, var(--color-signal-light) 50%, var(--color-dust));
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--color-signal-light) 18%, transparent);
+  transform: translateY(-50%) translateX(-3px);
+}
+
+.ai-help-panel {
+  animation: ai-panel-in 240ms var(--motion-enter) both;
+}
+
+.ai-message {
+  animation: message-in 180ms var(--motion-smooth) both;
+}
+
+.cheat-tab,
+.cheat-toc-link,
+.cheat-copy {
+  transition: background-color 170ms var(--motion-smooth), border-color 170ms var(--motion-smooth), color 170ms var(--motion-smooth), transform 170ms var(--motion-smooth), box-shadow 170ms var(--motion-smooth);
+}
+
+.cheat-tab:hover,
+.cheat-toc-link:hover,
+.cheat-copy:hover {
+  transform: translateY(-1px);
+}
+
+.cheat-toc-link.is-active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-signal-light) 34%, transparent);
+}
+
+.cheat-copy:hover {
+  border-color: color-mix(in srgb, var(--code-keyword) 60%, var(--color-dust));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--code-keyword) 20%, transparent);
+}
+
+.cheat-prose h2 {
+  color: var(--color-ink);
+}
+
+.cheat-prose h2::before {
+  display: inline-block;
+  width: 0.42em;
+  height: 0.42em;
+  margin-right: 0.38em;
+  border-radius: 999px;
+  background: var(--code-keyword);
+  content: "";
+  vertical-align: 0.08em;
+}
+
+.cheat-prose pre {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--code-preprocessor) 18%, transparent),
+    0 18px 44px color-mix(in srgb, var(--code-keyword) 9%, transparent);
+}
+
+.cheat-prose code span {
+  transition: color 140ms var(--motion-smooth);
+}
+
+.result-card {
+  transition: background-color 180ms var(--motion-smooth), transform 180ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth);
+}
+
+.result-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--color-ink) 7%, transparent);
+}
+
+@keyframes palette-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes palette-dialog-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ai-panel-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes message-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {

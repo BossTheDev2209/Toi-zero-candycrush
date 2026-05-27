@@ -108,21 +108,21 @@ export function ProblemWorkspacePage() {
       <h1 className="mt-2 mb-8">{p.slug} - {p.title}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section className="flex max-h-[80vh] flex-col rounded-[40px] bg-white p-6">
+        <section className="motion-surface flex max-h-[80vh] flex-col rounded-[40px] border border-[var(--color-dust)] bg-white p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] p-1">
               <button
                 type="button"
                 onClick={() => setStatementMode("pdf")}
                 disabled={!p.has_pdf}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium ${statementMode === "pdf" ? "bg-[var(--color-ink)] text-[var(--color-canvas)]" : "text-[var(--color-slate)] disabled:opacity-45"}`}
+                className={`motion-press rounded-full px-4 py-1.5 text-sm font-medium ${statementMode === "pdf" ? "bg-[var(--color-ink)] text-[var(--color-canvas)]" : "text-[var(--color-slate)] disabled:opacity-45"}`}
               >
                 PDF
               </button>
               <button
                 type="button"
                 onClick={() => setStatementMode("markdown")}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium ${statementMode === "markdown" ? "bg-[var(--color-ink)] text-[var(--color-canvas)]" : "text-[var(--color-slate)]"}`}
+                className={`motion-press rounded-full px-4 py-1.5 text-sm font-medium ${statementMode === "markdown" ? "bg-[var(--color-ink)] text-[var(--color-canvas)]" : "text-[var(--color-slate)]"}`}
               >
                 Markdown
               </button>
@@ -132,7 +132,7 @@ export function ProblemWorkspacePage() {
                 type="button"
                 onClick={downloadPdf}
                 disabled={pdfLoading}
-                className="rounded-[20px] border-[1.5px] border-[var(--color-ink)] bg-white px-4 py-1.5 text-sm font-medium text-[var(--color-ink)] disabled:opacity-50"
+                className="motion-press rounded-[20px] border-[1.5px] border-[var(--color-ink)] bg-white px-4 py-1.5 text-sm font-medium text-[var(--color-ink)] disabled:opacity-50"
               >
                 {pdfLoading ? "Downloading..." : "Download PDF"}
               </button>
@@ -163,7 +163,7 @@ export function ProblemWorkspacePage() {
         </section>
 
         <section className="flex flex-col" style={{ height: "80vh" }}>
-          <div className="bg-white rounded-[40px] p-4 flex flex-col flex-1 min-h-0">
+          <div className="motion-surface flex min-h-0 flex-1 flex-col rounded-[40px] border border-[var(--color-dust)] bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-3 px-2 pb-3 pt-1">
               <div className="flex shrink-0 items-center gap-3">
                 <select value={lang} onChange={(e) => changeLanguage(e.target.value as Language)} className="h-9 rounded-full border border-[var(--color-dust)] bg-white px-3 text-sm text-[var(--color-ink)]">
@@ -205,7 +205,7 @@ export function ProblemWorkspacePage() {
       <section className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
           <EyebrowLabel>Recent runs</EyebrowLabel>
-          <div className="mt-3 bg-white rounded-[40px] p-4">
+          <div className="motion-surface mt-3 rounded-[40px] border border-[var(--color-dust)] bg-white p-4">
             <RunHistoryList runs={runs} />
           </div>
         </div>

@@ -96,8 +96,8 @@ export function CheatSheetPage() {
             key={l}
             onClick={() => navigate(`/cheatsheet/${l}`)}
             className={l === current
-              ? "rounded-full bg-[var(--color-ink)] text-[var(--color-canvas)] px-5 py-1.5 text-sm font-medium"
-              : "rounded-full border border-[var(--color-ink)] bg-white text-[var(--color-ink)] px-5 py-1.5 text-sm"}
+              ? "cheat-tab rounded-full bg-[var(--color-ink)] px-5 py-1.5 text-sm font-medium text-[var(--color-canvas)] shadow-[0_10px_24px_var(--color-panel-glow)]"
+              : "cheat-tab rounded-full border border-[var(--color-ink)] bg-white px-5 py-1.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-selection-tint)]"}
           >
             {LANG_LABELS[l]}
           </button>
@@ -106,10 +106,11 @@ export function CheatSheetPage() {
 
       <div className="flex gap-12">
         <CheatSheetTOC entries={entries} activeAnchor={active} />
-        <div className="prose prose-stone max-w-none flex-1 text-[var(--color-ink)] prose-p:my-3 prose-p:leading-7 [&_h2]:mt-14 [&_h2]:mb-3 [&_h2:first-child]:mt-0 [&_pre]:relative [&_pre]:my-5 [&_pre]:overflow-x-auto [&_pre]:rounded-[24px] [&_pre]:border [&_pre]:border-[var(--color-dust)] [&_pre]:bg-[var(--code-bg)] [&_pre]:p-5 [&_pre]:pr-20 [&_code]:font-mono [&_code]:text-[13px] [&_code]:leading-6">
+        <div className="cheat-prose prose prose-stone max-w-none flex-1 text-[var(--color-ink)] prose-p:my-3 prose-p:leading-7 [&_h2]:mt-14 [&_h2]:mb-3 [&_h2:first-child]:mt-0 [&_pre]:relative [&_pre]:my-5 [&_pre]:overflow-x-auto [&_pre]:rounded-[24px] [&_pre]:border [&_pre]:border-[var(--color-dust)] [&_pre]:bg-[var(--code-bg)] [&_pre]:p-5 [&_pre]:pr-20 [&_code]:font-mono [&_code]:text-[13px] [&_code]:leading-6">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
+              h1: () => null,
               h2: ({ children }) => {
                 const text = String(children);
                 const id = slugify(text);
@@ -121,7 +122,7 @@ export function CheatSheetPage() {
                   <pre {...rest}>
                     <button
                       onClick={(e) => copyCode(text, e.currentTarget)}
-                      className="absolute top-3 right-3 rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] px-3 py-0.5 text-[10px] font-medium text-[var(--color-ink)]"
+                      className="cheat-copy absolute right-3 top-3 rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] px-3 py-0.5 text-[10px] font-medium text-[var(--color-ink)]"
                     >Copy</button>
                     {children}
                   </pre>

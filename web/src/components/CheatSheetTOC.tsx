@@ -9,7 +9,11 @@ export function CheatSheetTOC({ entries, activeAnchor }: { entries: CheatEntry[]
           <li key={entry.anchor}>
             <a
               href={`#${entry.anchor}`}
-              className={`block rounded-md px-2 py-1 ${activeAnchor === entry.anchor ? "bg-[var(--color-lifted)] text-[var(--color-ink)]" : "text-[var(--color-graphite)] hover:bg-[var(--color-lifted)]/60"}`}
+              className={`cheat-toc-link block rounded-full px-3 py-1.5 ${
+                activeAnchor === entry.anchor
+                  ? "is-active bg-[var(--color-selection-tint)] text-[var(--color-ink)]"
+                  : "text-[var(--color-graphite)] hover:bg-[var(--color-lifted)]/70"
+              }`}
             >
               {entry.heading}
             </a>

@@ -14,3 +14,5 @@ settings.json
 .vscode/
 .idea/
 .claude/settings.local.json
+.agents/
+skills-lock.json

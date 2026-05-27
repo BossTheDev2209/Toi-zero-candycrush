@@ -9,6 +9,12 @@ import type { Problem } from "../lib/types";
 type Source = "problem" | "cheat" | "docs";
 interface Entry { source: Source; label: string; sub: string; path: string; }
 
+const SOURCE_LABEL: Record<Source, string> = {
+  problem: "Problem",
+  cheat: "Cheat",
+  docs: "Docs",
+};
+
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -85,8 +91,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-start bg-[var(--color-ink)]/30 pt-[14vh] px-6" onClick={onClose}>
-      <form onSubmit={onSubmit} onClick={(e) => e.stopPropagation()} className="w-full max-w-[640px] overflow-hidden rounded-[24px] border border-[var(--color-dust)] bg-[var(--color-lifted)] shadow-[var(--shadow-card)]">
+    <div className="palette-backdrop fixed inset-0 z-50 grid place-items-start bg-[var(--color-ink)]/30 px-6 pt-[14vh]" onClick={onClose}>
+      <form onSubmit={onSubmit} onClick={(e) => e.stopPropagation()} className="palette-dialog w-full max-w-[640px] overflow-hidden rounded-[24px] border border-[var(--color-dust)] bg-[var(--color-lifted)] shadow-[var(--shadow-card)]">
         <input
           autoFocus
           role="combobox"
@@ -114,9 +120,12 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               aria-selected={i === selectedIdx}
               onMouseEnter={() => setCursor(i)}
               onClick={() => go(entry)}
-              className={`block w-full text-left px-5 py-2.5 ${i === selectedIdx ? "bg-[var(--color-canvas)]" : ""}`}
+              className="palette-option block w-full px-5 py-2.5 text-left"
             >
-              <div className="text-sm font-medium text-[var(--color-ink)]">{entry.label}</div>
+              <div className="flex items-center gap-2">
+                <span className={`palette-source ${entry.source}`}>{SOURCE_LABEL[entry.source]}</span>
+                <div className="min-w-0 text-sm font-medium text-[var(--color-ink)]">{entry.label}</div>
+              </div>
               {entry.sub && <div className="text-xs text-[var(--color-slate)]">{entry.sub}</div>}
             </button>
           ))}

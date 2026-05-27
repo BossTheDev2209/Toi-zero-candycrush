@@ -133,24 +133,24 @@ export function DocsPage() {
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-        <aside className="h-fit rounded-[32px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-5 lg:sticky lg:top-28">
+        <aside className="motion-surface h-fit rounded-[32px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-5 lg:sticky lg:top-28">
           <div className="text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--color-slate)]">On this page</div>
           <nav className="mt-4 grid gap-2 text-sm font-semibold text-[var(--color-ink)]">
             {DOC_SECTIONS.map((section) => (
-              <a key={section.anchor} href={`#${section.anchor}`} className="rounded-full px-3 py-2 hover:bg-[var(--color-bone)]">{section.title}</a>
+              <a key={section.anchor} href={`#${section.anchor}`} className="motion-press rounded-full px-3 py-2 hover:bg-[var(--color-selection-tint)]">{section.title}</a>
             ))}
           </nav>
         </aside>
 
         <div className="space-y-8">
-          <section id="quick-start" className="rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
+          <section id="quick-start" className="motion-surface rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
             <div className="mb-6 flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-[var(--color-signal-light)]" />
               <h2 className="text-[32px] leading-9">Quick start</h2>
             </div>
             <div className="grid gap-5">
               {quickStart.map((step, index) => (
-                <article key={step.title} className="rounded-[28px] border border-[var(--color-dust)] bg-[var(--color-canvas)] p-5">
+                <article key={step.title} className="result-card rounded-[28px] border border-[var(--color-dust)] bg-[var(--color-canvas)] p-5">
                   <div className="flex gap-4">
                     <NumberBadge value={index + 1} />
                     <div>
@@ -164,14 +164,14 @@ export function DocsPage() {
             </div>
           </section>
 
-          <section id="workflows" className="rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
+          <section id="workflows" className="motion-surface rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
             <div className="mb-6 flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-[var(--color-signal-light)]" />
               <h2 className="text-[32px] leading-9">Workflows</h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {workflows.map(([title, body]) => (
-                <article key={title} className="rounded-[28px] border border-[var(--color-dust)] bg-[var(--color-canvas)] p-5">
+                <article key={title} className="result-card rounded-[28px] border border-[var(--color-dust)] bg-[var(--color-canvas)] p-5">
                   <h3 className="text-[22px] leading-7">{title}</h3>
                   <p className="mt-2 text-[15px] text-[var(--color-slate)]">{body}</p>
                 </article>
@@ -179,7 +179,7 @@ export function DocsPage() {
             </div>
           </section>
 
-          <section id="submit" className="rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
+          <section id="submit" className="motion-surface rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
             <div className="mb-6 flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-[var(--color-signal-light)]" />
               <h2 className="text-[32px] leading-9">TOI submit</h2>
@@ -199,14 +199,14 @@ export function DocsPage() {
             </div>
           </section>
 
-          <section id="troubleshooting" className="rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
+          <section id="troubleshooting" className="motion-surface rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
             <div className="mb-6 flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-[var(--color-signal-light)]" />
               <h2 className="text-[32px] leading-9">Troubleshooting</h2>
             </div>
             <div className="divide-y divide-[var(--color-dust)] rounded-[28px] border border-[var(--color-dust)] bg-[var(--color-canvas)]">
               {troubleshooting.map(([title, body]) => (
-                <div key={title} className="p-5">
+                <div key={title} className="result-card p-5">
                   <h3 className="text-[20px] leading-7">{title}</h3>
                   <p className="mt-2 text-[15px] text-[var(--color-slate)]">{body}</p>
                 </div>

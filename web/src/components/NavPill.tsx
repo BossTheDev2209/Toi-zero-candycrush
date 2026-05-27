@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getTheme, toggleTheme, type Theme } from "../lib/theme";
 
+function navLinkClass(active: boolean): string {
+  return `nav-link text-[16px] font-medium tracking-[-0.03em] ${
+    active ? "is-active text-[var(--color-ink)]" : "text-[var(--color-graphite)]"
+  }`;
+}
+
 export function NavPill({ onOpenPalette }: { onOpenPalette?: () => void } = {}) {
   const loc = useLocation();
   const onHome = loc.pathname === "/";
@@ -40,7 +46,7 @@ export function NavPill({ onOpenPalette }: { onOpenPalette?: () => void } = {}) 
         hidden ? "is-hidden pointer-events-none" : ""
       }`}
     >
-      <nav className="bg-white rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-8 px-8 py-3">
+      <nav className="nav-shell flex items-center gap-8 rounded-full bg-white px-8 py-3 shadow-[var(--shadow-nav)]">
         <Link to="/" className="flex items-center gap-1.5" aria-label="TOIZero home">
           <span className="w-4 h-4 rounded-full bg-[var(--color-mc-red)] -mr-1.5" />
           <span className="w-4 h-4 rounded-full bg-[var(--color-mc-yellow)] mix-blend-multiply" />
@@ -49,33 +55,25 @@ export function NavPill({ onOpenPalette }: { onOpenPalette?: () => void } = {}) 
         <div className="flex items-center gap-6">
           <Link
             to="/"
-            className={`text-[16px] font-medium tracking-[-0.03em] ${
-              onHome ? "text-[var(--color-ink)]" : "text-[var(--color-graphite)]"
-            }`}
+            className={navLinkClass(onHome)}
           >
             Problems
           </Link>
           <Link
             to="/docs"
-            className={`text-[16px] font-medium tracking-[-0.03em] ${
-              onDocs ? "text-[var(--color-ink)]" : "text-[var(--color-graphite)]"
-            }`}
+            className={navLinkClass(onDocs)}
           >
             Docs
           </Link>
           <Link
             to="/cheatsheet/cpp"
-            className={`text-[16px] font-medium tracking-[-0.03em] ${
-              onCheat ? "text-[var(--color-ink)]" : "text-[var(--color-graphite)]"
-            }`}
+            className={navLinkClass(onCheat)}
           >
             Cheat sheet
           </Link>
           <Link
             to="/settings"
-            className={`text-[16px] font-medium tracking-[-0.03em] ${
-              onSettings ? "text-[var(--color-ink)]" : "text-[var(--color-graphite)]"
-            }`}
+            className={navLinkClass(onSettings)}
           >
             Settings
           </Link>
@@ -84,7 +82,7 @@ export function NavPill({ onOpenPalette }: { onOpenPalette?: () => void } = {}) 
           onClick={onOpenPalette}
           aria-label="Open command palette"
           title="Ctrl+K"
-          className="w-9 h-9 rounded-full grid place-items-center border border-[var(--color-dust)] text-[var(--color-ink)] hover:bg-[var(--color-lifted)] transition-colors text-xs font-bold"
+          className="motion-press grid h-9 w-9 place-items-center rounded-full border border-[var(--color-dust)] text-xs font-bold text-[var(--color-ink)] hover:bg-[var(--color-selection-tint)]"
         >
           ⌘K
         </button>
@@ -92,7 +90,7 @@ export function NavPill({ onOpenPalette }: { onOpenPalette?: () => void } = {}) 
           onClick={flip}
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
           title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          className="w-9 h-9 rounded-full grid place-items-center border border-[var(--color-dust)] text-[var(--color-ink)] hover:bg-[var(--color-lifted)] transition-colors"
+          className="motion-press grid h-9 w-9 place-items-center rounded-full border border-[var(--color-dust)] text-[var(--color-ink)] hover:bg-[var(--color-selection-tint)]"
         >
           {theme === "dark" ? (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

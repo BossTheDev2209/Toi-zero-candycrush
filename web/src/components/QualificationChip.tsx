@@ -29,7 +29,7 @@ export function QualificationChip({ qualification, onSynced }: { qualification: 
     }
   }
 
-  const dot = qualification.qualified ? "bg-[var(--color-signal-light)]" : "bg-[var(--color-dust)]";
+  const dot = qualification.qualified ? "bg-[var(--color-success)]" : "bg-[var(--color-warning)]";
   const a1Bars = Math.min(4, Math.floor(qualification.a1Count / 5));
   const a2Bars = Math.min(4, Math.floor(qualification.a2a3Count / 5));
 
@@ -70,7 +70,7 @@ export function QualificationChip({ qualification, onSynced }: { qualification: 
             type="button"
             onClick={syncScores}
             disabled={progress?.running}
-            className="mt-5 rounded-[20px] border-[1.5px] border-[var(--color-ink)] bg-[var(--color-ink)] px-5 py-1.5 text-sm font-medium text-[var(--color-canvas)] disabled:opacity-50"
+            className="motion-press mt-5 rounded-[20px] border-[1.5px] border-[var(--color-ink)] bg-[var(--color-ink)] px-5 py-1.5 text-sm font-medium text-[var(--color-canvas)] disabled:opacity-50"
           >
             {progress?.running ? "Syncing..." : "Sync from TOI"}
           </button>
@@ -87,7 +87,7 @@ function Meter({ label, value, bars }: { label: string; value: string; bars: num
       <span className="font-medium">{value}</span>
       <span className="flex gap-1">
         {Array.from({ length: 4 }, (_, i) => (
-          <span key={i} className={`h-3 w-4 rounded-[3px] ${i < bars ? "bg-[var(--color-signal-light)]" : "bg-[var(--color-dust)]"}`} />
+          <span key={i} className={`h-3 w-4 rounded-[3px] ${i < bars ? "bg-[var(--color-success)]" : "bg-[var(--color-dust)]"}`} />
         ))}
       </span>
     </div>

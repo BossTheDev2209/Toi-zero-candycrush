@@ -11,8 +11,8 @@ interface Props {
 
 const STATUS_BG: Record<Props["status"], string> = {
   unsolved:  "bg-[var(--color-dust)]",
-  attempted: "bg-[var(--color-signal-light)]/30",
-  solved:    "bg-[var(--color-signal-light)]/60",
+  attempted: "bg-[var(--color-warning-soft)]",
+  solved:    "bg-[var(--color-success-soft)]",
 };
 
 export function ProblemCircle({ title, category, status, onOpen, size = 280 }: Props) {

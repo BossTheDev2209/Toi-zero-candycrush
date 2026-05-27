@@ -60,7 +60,14 @@ export function ProblemNode({
             </span>
           )}
           {(status === "eighty" || status === "perfect") && (
-            <span className={`absolute grid place-items-center rounded-full bg-[var(--color-white)] text-[var(--color-ink)] ${status === "perfect" ? "h-9 w-9" : "h-7 w-7"}`} style={{ right: -3, bottom: -3 }}>
+            <span
+              className={`absolute grid place-items-center rounded-full border border-[var(--color-success)] ${
+                status === "perfect"
+                  ? "h-9 w-9 bg-[var(--color-success)] text-[var(--color-canvas)]"
+                  : "h-7 w-7 bg-[var(--color-white)] text-[var(--color-success)]"
+              }`}
+              style={{ right: -3, bottom: -3 }}
+            >
               <svg width={status === "perfect" ? 18 : 14} height={status === "perfect" ? 18 : 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
@@ -72,7 +79,7 @@ export function ProblemNode({
         <div className="rounded-[20px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-2 shadow-[var(--shadow-nav)]">
           <div>{slug} {score > 0 ? `${score}` : ""}</div>
           <div className="mt-1 text-[10px] text-[var(--color-slate)]">
-            {counts ? "นับ — counts toward qualification" : "ไม่นับ — does NOT count"}
+            {counts ? "นับ: counts toward qualification" : "ไม่นับ: does NOT count"}
           </div>
           <button
             type="button"
@@ -80,7 +87,7 @@ export function ProblemNode({
               event.stopPropagation();
               onToggleCounts();
             }}
-            className="mt-2 rounded-full border border-[var(--color-dust)] px-2.5 py-1 text-[10px] text-[var(--color-ink)]"
+            className="motion-press mt-2 rounded-full border border-[var(--color-dust)] px-2.5 py-1 text-[10px] text-[var(--color-ink)]"
           >
             {counts ? "Mark uncounted" : "Mark counted"}
           </button>

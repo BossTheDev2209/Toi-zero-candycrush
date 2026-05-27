@@ -17,11 +17,17 @@ const BG: Record<Props["section"], string> = {
   A3: "var(--section-a3-bg)",
 };
 
+const ACCENT: Record<Props["section"], string> = {
+  A1: "var(--section-a1-accent)",
+  A2: "var(--section-a2-accent)",
+  A3: "var(--section-a3-accent)",
+};
+
 export function SectionBand({ section, title, solved, total, milestone, height, children }: Props) {
   return (
     <section
       className="section-band relative rounded-[40px] px-6 pb-20 pt-10"
-      style={{ minHeight: height, "--section-bg": BG[section] } as CSSProperties}
+      style={{ minHeight: height, "--section-bg": BG[section], "--section-accent": ACCENT[section] } as CSSProperties}
     >
       <div className="mb-10 pl-2">
         <EyebrowLabel>{section} - {title}</EyebrowLabel>

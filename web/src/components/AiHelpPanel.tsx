@@ -58,7 +58,7 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-30 rounded-l-[20px] border border-[var(--color-dust)] border-r-0 bg-[var(--color-lifted)] px-3 py-4 text-[var(--color-ink)] shadow-[0_6px_24px_rgba(0,0,0,0.06)]"
+        className="ai-help-tab fixed right-0 top-1/2 z-30 -translate-y-1/2 rounded-l-[20px] border border-r-0 border-[var(--color-dust)] bg-[var(--color-lifted)] px-3 py-4 text-[var(--color-ink)] shadow-[0_6px_24px_rgba(0,0,0,0.06)]"
         aria-label="Open AI Help"
       >
         <span className="block writing-vertical text-[12px] font-bold tracking-[0.08em] uppercase">Help</span>
@@ -67,9 +67,12 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
   }
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 z-40 w-[380px] max-w-[90vw] border-l border-[var(--color-dust)] bg-[var(--color-canvas)] shadow-[-12px_0_36px_rgba(0,0,0,0.08)] flex flex-col" style={{ transition: "transform 240ms cubic-bezier(0.16, 1, 0.3, 1)" }}>
+    <div className="ai-help-panel fixed bottom-0 right-0 top-0 z-40 flex w-[380px] max-w-[90vw] flex-col border-l border-[var(--color-dust)] bg-[var(--color-canvas)] shadow-[-12px_0_36px_rgba(0,0,0,0.08)]">
       <div className="flex items-center justify-between border-b border-[var(--color-dust)] px-5 py-3">
-        <div className="text-sm font-medium tracking-[-0.02em]">AI Help{status ? ` · ${status.provider}` : ""}</div>
+        <div className="flex items-center gap-2 text-sm font-medium tracking-[-0.02em]">
+          <span className="h-2 w-2 rounded-full bg-[var(--color-info)]" />
+          <span>AI Help{status ? ` · ${status.provider}` : ""}</span>
+        </div>
         <div className="flex items-center gap-1">
           <button onClick={clearChat} title="Clear chat" className="text-[var(--color-slate)] hover:text-[var(--color-ink)] px-2 text-sm">Clear</button>
           <button onClick={() => setOpen(false)} aria-label="Close" className="text-[var(--color-slate)] hover:text-[var(--color-ink)] px-2 text-lg leading-none">×</button>
@@ -87,7 +90,7 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
           </div>
         )}
         {messages.map((m) => (
-          <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+          <div key={m.id} className={`ai-message ${m.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
             <div className={m.role === "user"
               ? "max-w-[85%] rounded-[18px] rounded-br-md bg-[var(--color-ink)] text-[var(--color-canvas)] px-4 py-2.5 text-sm"
               : "max-w-[92%] rounded-[18px] rounded-bl-md bg-[var(--color-lifted)] border border-[var(--color-dust)] px-4 py-2.5 text-sm"}>
