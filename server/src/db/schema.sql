@@ -61,3 +61,16 @@ CREATE TABLE IF NOT EXISTS toi_submission (
   error         TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS ai_message (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  problem_id  INTEGER NOT NULL REFERENCES problem(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+  content     TEXT NOT NULL,
+  provider    TEXT,
+  model       TEXT,
+  tokens_in   INTEGER,
+  tokens_out  INTEGER,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_ai_message_problem ON ai_message(problem_id, created_at);

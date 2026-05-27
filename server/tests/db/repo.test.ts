@@ -7,6 +7,7 @@ import { openDb } from "../../src/db/client";
 import { problemRepo } from "../../src/db/repo/problems";
 import { solutionRepo } from "../../src/db/repo/solutions";
 import { runRepo } from "../../src/db/repo/runs";
+import { aiMessageRepo } from "../../src/db/repo/ai_messages";
 
 describe("problemRepo", () => {
   test("creates and retrieves a problem with sample tests", () => {
@@ -306,5 +307,43 @@ describe("runRepo", () => {
     });
 
     expect(rRepo.listRecent(id, 5)[0]!.language).toBe("py");
+  });
+});
+
+describe("aiMessageRepo", () => {
+  test("creates messages and lists them in order", () => {
+    const db = openDb(":memory:");
+    const pRepo = problemRepo(db);
+    const id = pRepo.create({
+      slug: "A1-001", title: "x", statementMd: "", inputMd: "", outputMd: "",
+      category: "A1", timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [], extraTests: [],
+    });
+
+    const aRepo = aiMessageRepo(db);
+    aRepo.create({ problemId: id, role: "user", content: "help me", provider: null, model: null, tokensIn: null, tokensOut: null });
+    aRepo.create({ problemId: id, role: "assistant", content: "what have you tried?", provider: "ollama", model: "qwen2.5-coder:7b", tokensIn: 100, tokensOut: 30 });
+
+    const msgs = aRepo.listForProblem(id);
+    expect(msgs.length).toBe(2);
+    expect(msgs[0]!.role).toBe("user");
+    expect(msgs[0]!.content).toBe("help me");
+    expect(msgs[1]!.role).toBe("assistant");
+    expect(msgs[1]!.tokens_out).toBe(30);
+  });
+
+  test("clearForProblem removes all messages and returns count", () => {
+    const db = openDb(":memory:");
+    const pRepo = problemRepo(db);
+    const id = pRepo.create({
+      slug: "A1-002", title: "x", statementMd: "", inputMd: "", outputMd: "",
+      category: "A1", timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [], extraTests: [],
+    });
+    const aRepo = aiMessageRepo(db);
+    aRepo.create({ problemId: id, role: "user", content: "a", provider: null, model: null, tokensIn: null, tokensOut: null });
+    aRepo.create({ problemId: id, role: "assistant", content: "b", provider: null, model: null, tokensIn: null, tokensOut: null });
+    expect(aRepo.clearForProblem(id)).toBe(2);
+    expect(aRepo.listForProblem(id).length).toBe(0);
   });
 });

@@ -88,6 +88,23 @@ export function openDb(path: string): Database {
   if (!hasCol("toi_counts")) {
     db.exec("ALTER TABLE problem ADD COLUMN toi_counts INTEGER NOT NULL DEFAULT 1;");
   }
+  const hasAiMessage = (db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='ai_message'").get() as { name: string } | null);
+  if (!hasAiMessage) {
+    db.exec(`
+      CREATE TABLE ai_message (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        problem_id  INTEGER NOT NULL REFERENCES problem(id) ON DELETE CASCADE,
+        role        TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+        content     TEXT NOT NULL,
+        provider    TEXT,
+        model       TEXT,
+        tokens_in   INTEGER,
+        tokens_out  INTEGER,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_ai_message_problem ON ai_message(problem_id, created_at);
+    `);
+  }
   migrateLanguageChecks(db);
   return db;
 }
