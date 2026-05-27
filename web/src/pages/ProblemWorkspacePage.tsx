@@ -10,6 +10,7 @@ import { TestResultsPanel } from "../components/TestResultsPanel";
 import { RunHistoryList } from "../components/RunHistoryList";
 import { VerdictGlossary } from "../components/VerdictGlossary";
 import { PdfViewer } from "../components/PdfViewer";
+import { AiHelpPanel } from "../components/AiHelpPanel";
 
 export function ProblemWorkspacePage() {
   const { id } = useParams();
@@ -214,6 +215,7 @@ export function ProblemWorkspacePage() {
           </div>
         </div>
       </section>
+      {p && <AiHelpPanel problemId={p.id} />}
     </div>
   );
 }

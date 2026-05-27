@@ -154,6 +154,11 @@ html.dark select option {
   pointer-events: auto;
 }
 
+.writing-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
 .nav-auto-hide {
   opacity: 1;
   transform: translate(-50%, 0);
