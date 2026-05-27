@@ -43,6 +43,13 @@ html.dark {
   --path-shadow: rgba(243, 115, 56, 0.28);
   --motion-enter: cubic-bezier(0.16, 1, 0.3, 1);
   --motion-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --code-bg: #181613;
+  --code-text: #F3F0EE;
+  --code-keyword: #FF8B4A;
+  --code-string: #A8D08D;
+  --code-number: #D6B36A;
+  --code-comment: #8E8982;
+  --code-preprocessor: #7AA0FF;
 }
 
 html.dark {
@@ -54,6 +61,13 @@ html.dark {
   --node-surface-strong: rgba(252, 251, 250, 0.07);
   --node-letter: rgba(240, 237, 233, 0.42);
   --path-shadow: rgba(255, 139, 74, 0.3);
+  --code-bg: #141210;
+  --code-text: #F3F0EE;
+  --code-keyword: #FF9B5E;
+  --code-string: #B6DFA3;
+  --code-number: #E0C071;
+  --code-comment: #96918A;
+  --code-preprocessor: #8BAAFF;
 }
 
 html, body, #root {

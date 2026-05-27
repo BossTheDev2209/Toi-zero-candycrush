@@ -99,6 +99,7 @@ export function ProblemWorkspacePage() {
   }
 
   if (!p) return <div className="pt-32 px-12">Loading…</div>;
+  const toolbarButtonClass = "min-h-0 whitespace-nowrap rounded-[16px] px-4 py-1 text-sm leading-5";
 
   return (
     <div className="pt-28 px-6 max-w-[1600px] mx-auto">
@@ -163,21 +164,21 @@ export function ProblemWorkspacePage() {
 
         <section className="flex flex-col" style={{ height: "80vh" }}>
           <div className="bg-white rounded-[40px] p-4 flex flex-col flex-1 min-h-0">
-            <div className="flex items-center justify-between px-4 py-2">
-              <div className="flex items-center gap-3">
-                <select value={lang} onChange={(e) => changeLanguage(e.target.value as Language)} className="rounded-full border border-[var(--color-dust)] px-4 py-1 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-2 pb-3 pt-1">
+              <div className="flex shrink-0 items-center gap-3">
+                <select value={lang} onChange={(e) => changeLanguage(e.target.value as Language)} className="h-9 rounded-full border border-[var(--color-dust)] bg-white px-3 text-sm text-[var(--color-ink)]">
                   <option value="cpp">C++</option>
                   <option value="c">C</option>
                   <option value="py">Python</option>
                 </select>
                 {savedMsg && <span className="text-sm text-[var(--color-slate)]">{savedMsg}</span>}
               </div>
-              <div className="flex gap-2">
-                <PillButton variant="secondary" onClick={save}>Save</PillButton>
-                <PillButton variant="secondary" onClick={downloadCode}>Download</PillButton>
-                <PillButton onClick={() => run("sample")} disabled={running}>{running ? "Running…" : "Run samples"}</PillButton>
-                <PillButton variant="secondary" onClick={() => run("all")} disabled={running}>Run all</PillButton>
-                <PillButton onClick={submitToToi} disabled={submitting}>{submitting ? "Submitting…" : "Submit to TOI"}</PillButton>
+              <div className="flex flex-wrap justify-end gap-2">
+                <PillButton variant="secondary" className={toolbarButtonClass} onClick={save}>Save</PillButton>
+                <PillButton variant="secondary" className={toolbarButtonClass} onClick={downloadCode}>Download</PillButton>
+                <PillButton className={toolbarButtonClass} onClick={() => run("sample")} disabled={running}>{running ? "Running..." : "Run samples"}</PillButton>
+                <PillButton variant="secondary" className={toolbarButtonClass} onClick={() => run("all")} disabled={running}>Run all</PillButton>
+                <PillButton className={toolbarButtonClass} onClick={submitToToi} disabled={submitting}>{submitting ? "Submitting..." : "Submit to TOI"}</PillButton>
               </div>
             </div>
             <div className="flex-1 overflow-hidden rounded-[24px] border border-[var(--color-dust)]/40 min-h-0">
