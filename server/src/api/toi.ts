@@ -4,6 +4,7 @@ import type { Database } from "bun:sqlite";
 import type { AppConfig } from "../config";
 import { persistToiUpdate } from "../config";
 import { problemRepo } from "../db/repo/problems";
+import { solutionRepo } from "../db/repo/solutions";
 import { toiSubmissionRepo } from "../db/repo/toi_submissions";
 import { submitToToi } from "../toi/submit";
 import { fetchBestScore } from "../toi/scrapeScores";
@@ -35,6 +36,26 @@ let syncProgress: SyncProgress = {
   finishedAt: null,
 };
 
+interface SubmitAllProgress {
+  running: boolean;
+  total: number;
+  done: number;
+  succeeded: number;
+  failed: { slug: string; error: string }[];
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+let submitAllProgress: SubmitAllProgress = {
+  running: false,
+  total: 0,
+  done: 0,
+  succeeded: 0,
+  failed: [],
+  startedAt: null,
+  finishedAt: null,
+};
+
 async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T) => Promise<void>): Promise<void> {
   let next = 0;
   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
@@ -55,6 +76,8 @@ const CredentialsZ = z.object({
 export function toiRouter(db: Database, cfg: AppConfig) {
   const r = new Hono();
   const pRepo = problemRepo(db);
+  const sRepo = solutionRepo(db);
+  const subRepo = toiSubmissionRepo(db);
 
   /** Auto-refresh on cookie expiry: if username/password present, log in + persist. */
   async function refreshCookieIfPossible(): Promise<{ ok: boolean; error?: string }> {
@@ -105,7 +128,6 @@ export function toiRouter(db: Database, cfg: AppConfig) {
     if (!refresh.ok) return c.json({ ok: false, error: refresh.error }, 400);
     return c.json({ ok: true, lastLoginAt: cfg.toi.lastLoginAt });
   });
-  const repo = toiSubmissionRepo(db);
 
   r.post("/:problemId/submit", async (c) => {
     const id = Number(c.req.param("problemId"));
@@ -130,7 +152,7 @@ export function toiRouter(db: Database, cfg: AppConfig) {
       code: body.code,
     });
 
-    repo.create({
+    subRepo.create({
       problemId: id,
       language: body.language,
       codeSnapshot: body.code,
@@ -247,6 +269,77 @@ export function toiRouter(db: Database, cfg: AppConfig) {
   });
 
   r.get("/sync-progress", (c) => c.json(syncProgress));
+
+  /**
+   * Bulk-submit every problem with a saved local solution to TOI.
+   * Returns 202 immediately and runs in background; poll /submit-all-progress.
+   * Concurrency capped at 3 to avoid rate-limiting / cookie invalidation.
+   * Stops the whole batch on cookie expiry (single auto-refresh attempt allowed).
+   */
+  r.post("/submit-all", async (c) => {
+    if (submitAllProgress.running) return c.json(submitAllProgress, 409);
+    if (!cfg.toi.baseUrl || !cfg.toi.cookie || !cfg.toi.xsrf) {
+      return c.json({ error: "TOI not configured. Set toi.baseUrl, toi.cookie, toi.xsrf in settings.json." }, 400);
+    }
+
+    const solutions = sRepo.listAllNonEmpty();
+    const targets: { problemId: number; slug: string; language: "c" | "cpp" | "py"; code: string }[] = [];
+    for (const s of solutions) {
+      const p = pRepo.getById(s.problem_id);
+      if (!p) continue;
+      targets.push({ problemId: s.problem_id, slug: p.slug, language: s.language, code: s.code });
+    }
+
+    submitAllProgress = {
+      running: true,
+      total: targets.length,
+      done: 0,
+      succeeded: 0,
+      failed: [],
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+    };
+
+    void runWithConcurrency(targets, 3, async (t) => {
+      const trySubmit = () => submitToToi({
+        baseUrl: cfg.toi.baseUrl,
+        cookie: cfg.toi.cookie,
+        xsrf: cfg.toi.xsrf,
+        extraHeaders: cfg.toi.extraHeaders,
+        slug: t.slug,
+        language: t.language,
+        code: t.code,
+      });
+      let result = await trySubmit();
+      if (!result.error || !/login|cookie|xsrf/i.test(result.error)) {
+        // proceed
+      } else {
+        const refresh = await refreshCookieIfPossible();
+        if (refresh.ok) result = await trySubmit();
+      }
+      subRepo.create({
+        problemId: t.problemId,
+        language: t.language,
+        codeSnapshot: t.code,
+        httpStatus: result.status,
+        responseJson: JSON.stringify(result.body ?? null),
+        error: result.error,
+      });
+      if (result.status && result.status >= 200 && result.status < 400 && !result.error) {
+        submitAllProgress.succeeded += 1;
+      } else {
+        submitAllProgress.failed.push({ slug: t.slug, error: result.error ?? `HTTP ${result.status}` });
+      }
+      submitAllProgress.done += 1;
+    }).finally(() => {
+      submitAllProgress.running = false;
+      submitAllProgress.finishedAt = new Date().toISOString();
+    });
+
+    return c.json(submitAllProgress, 202);
+  });
+
+  r.get("/submit-all-progress", (c) => c.json(submitAllProgress));
 
   return r;
 }

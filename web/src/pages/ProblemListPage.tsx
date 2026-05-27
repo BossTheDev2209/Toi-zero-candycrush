@@ -29,8 +29,8 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
     catch { return new Set(); }
   });
   const [gateProblem, setGateProblem] = useState<Problem | null>(null);
-  const [pdfSyncing, setPdfSyncing] = useState(false);
-  const [pdfSyncMsg, setPdfSyncMsg] = useState<string | null>(null);
+  const [submitAllRunning, setSubmitAllRunning] = useState(false);
+  const [submitAllMsg, setSubmitAllMsg] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<ProblemSortMode>("slug");
   const [filterMode, setFilterMode] = useState<ProblemFilterMode>("all");
 
@@ -89,17 +89,42 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
     navigate(`/p/${problem.id}`);
   }
 
-  async function syncAllPdfs() {
-    setPdfSyncing(true);
-    setPdfSyncMsg(null);
+  async function submitAllToToi() {
+    const targetCount = problems?.length ?? 0;
+    if (!window.confirm(`Submit every problem with a saved local solution to TOI.\n\nThis sends real submissions to your TOI account. Each one shows up in your submission history. Continue?`)) {
+      return;
+    }
+    setSubmitAllRunning(true);
+    setSubmitAllMsg("Starting...");
     try {
-      const result = await api.syncAllPdfs();
-      setPdfSyncMsg(`${result.synced} synced · ${result.skipped} skipped · ${result.failed.length} failed`);
-      await load();
+      const start = await api.startSubmitAll();
+      if (start.total === 0) {
+        setSubmitAllMsg("No saved solutions yet — write code on a problem first.");
+        setSubmitAllRunning(false);
+        return;
+      }
+      setSubmitAllMsg(`Submitting 0 / ${start.total}...`);
+      // Poll progress every 1.5s
+      const tick = setInterval(async () => {
+        try {
+          const p = await api.getSubmitAllProgress();
+          setSubmitAllMsg(`Submitting ${p.done} / ${p.total} · ${p.succeeded} ok · ${p.failed.length} failed`);
+          if (!p.running) {
+            clearInterval(tick);
+            setSubmitAllRunning(false);
+            setSubmitAllMsg(`Done. ${p.succeeded} / ${p.total} submitted${p.failed.length ? ` · ${p.failed.length} failed` : ""}.`);
+            await load();
+          }
+        } catch {
+          // ignore transient
+        }
+      }, 1500);
+      // ignore the initial reference to start beyond logging total
+      void start;
+      void targetCount;
     } catch (e: any) {
-      setPdfSyncMsg(e?.message ?? String(e));
-    } finally {
-      setPdfSyncing(false);
+      setSubmitAllMsg(e?.message ?? String(e));
+      setSubmitAllRunning(false);
     }
   }
 
@@ -121,8 +146,8 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
         <div className="mb-8 flex items-end justify-between gap-4">
           <h1 className="max-w-[620px]">TOI Zero path.</h1>
           <div className="flex items-center gap-2">
-            <PillButton variant="secondary" onClick={syncAllPdfs} disabled={pdfSyncing}>
-              {pdfSyncing ? "Syncing..." : "Sync PDFs"}
+            <PillButton variant="secondary" onClick={submitAllToToi} disabled={submitAllRunning}>
+              {submitAllRunning ? "Submitting..." : "Submit all to TOI"}
             </PillButton>
             <button
               type="button"
@@ -173,7 +198,7 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
               </select>
             </label>
           </div>
-          {pdfSyncMsg && <p className="mt-2 px-5 text-xs text-[var(--color-slate)]">{pdfSyncMsg}</p>}
+          {submitAllMsg && <p className="mt-2 px-5 text-xs text-[var(--color-slate)]">{submitAllMsg}</p>}
         </div>
       </div>
 

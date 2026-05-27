@@ -33,7 +33,12 @@ export function ProblemNode({
   onClick,
   onToggleCounts,
 }: Props) {
-  const letter = title.trim().charAt(0).toUpperCase() || slug.charAt(0).toUpperCase();
+  // Prefer the numeric suffix from the slug (e.g. "A1-001" -> "001"). Falls back
+  // to the first letter of the title for non-TOI problems without a numeric slug.
+  const slugNumMatch = slug.match(/(\d+)$/);
+  const label = slugNumMatch ? slugNumMatch[1] : (title.trim().charAt(0).toUpperCase() || slug.charAt(0).toUpperCase());
+  // 3-digit numbers shrink slightly so they fit inside the orb at every node size.
+  const labelFontSize = slugNumMatch ? Math.max(20, size * 0.26) : Math.max(28, size * 0.34);
   return (
     <div className="group relative" style={{ width: size, height: size }}>
       <button
@@ -50,8 +55,8 @@ export function ProblemNode({
               <path d="M8 10V7a4 4 0 0 1 8 0v3" />
             </svg>
           ) : (
-            <span className="node-letter font-medium tracking-[-0.02em]" style={{ fontSize: Math.max(28, size * 0.34) }}>
-              {letter}
+            <span className="node-letter font-medium tabular-nums tracking-[-0.02em]" style={{ fontSize: labelFontSize }}>
+              {label}
             </span>
           )}
           {!counts && (

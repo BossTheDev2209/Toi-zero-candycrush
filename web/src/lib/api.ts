@@ -34,6 +34,18 @@ export const api = {
   getQualification: () => fetch("/api/qualification").then(json<Qualification>),
   startScoreSync: () => fetch("/api/toi/sync-scores", { method: "POST" }).then(json<ScoreSyncProgress>),
   getScoreSyncProgress: () => fetch("/api/toi/sync-progress").then(json<ScoreSyncProgress>),
+  startSubmitAll: () =>
+    fetch("/api/toi/submit-all", { method: "POST" }).then(json<{
+      running: boolean; total: number; done: number; succeeded: number;
+      failed: { slug: string; error: string }[];
+      startedAt: string | null; finishedAt: string | null;
+    }>),
+  getSubmitAllProgress: () =>
+    fetch("/api/toi/submit-all-progress").then(json<{
+      running: boolean; total: number; done: number; succeeded: number;
+      failed: { slug: string; error: string }[];
+      startedAt: string | null; finishedAt: string | null;
+    }>),
   syncCounts: () =>
     fetch("/api/toi/sync-counts", { method: "POST" }).then(
       json<{ ok: true; seen: number; updated: number; notFoundInDb: string[]; uncounted: number } | { ok: false; error: string }>,

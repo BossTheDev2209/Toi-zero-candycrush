@@ -15,6 +15,9 @@ export function solutionRepo(db: Database) {
     `INSERT INTO solution (problem_id, language, code) VALUES (?, ?, ?)
      ON CONFLICT(problem_id) DO UPDATE SET language=excluded.language, code=excluded.code, updated_at=datetime('now')`
   );
+  const listAllNonEmpty = db.prepare(
+    `SELECT * FROM solution WHERE TRIM(code) <> '' ORDER BY problem_id`
+  );
 
   return {
     get(problemId: number): SolutionRow | null {
@@ -22,6 +25,9 @@ export function solutionRepo(db: Database) {
     },
     upsert(problemId: number, language: Language, code: string): void {
       upsert.run(problemId, language, code);
+    },
+    listAllNonEmpty(): SolutionRow[] {
+      return listAllNonEmpty.all() as SolutionRow[];
     },
   };
 }
