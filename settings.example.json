@@ -13,5 +13,15 @@
     "cookie": "",
     "xsrf": "",
     "extraHeaders": {}
+  },
+  "ai": {
+    "provider": "ollama",
+    "anthropicApiKey": "",
+    "anthropicModel": "claude-sonnet-4-5",
+    "openaiApiKey": "",
+    "openaiModel": "gpt-4o-mini",
+    "ollamaUrl": "http://localhost:11434",
+    "ollamaModel": "qwen2.5-coder:7b",
+    "maxTokens": 1024
   }
 }

@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 export interface AppConfig {
@@ -19,6 +19,18 @@ export interface AppConfig {
     /** Deprecated: prefer baseUrl. Kept for back-compat with older settings.json. */
     submitUrl?: string;
   };
+  ai: {
+    provider: "anthropic" | "openai" | "ollama";
+    anthropicApiKey?: string;
+    anthropicModel?: string;
+    openaiApiKey?: string;
+    openaiModel?: string;
+    ollamaUrl?: string;
+    ollamaModel?: string;
+    maxTokens?: number;
+  };
+  /** @internal — populated by loadConfig, used by writers. Not present in JSON. */
+  _root?: string;
 }
 
 // Walk up from start dir looking for settings.example.json (project root marker).
@@ -40,4 +52,14 @@ export function loadConfig(start = process.cwd()): AppConfig {
   const path = existsSync(local) ? local : example;
   const raw = JSON.parse(readFileSync(path, "utf8"));
   return { ...raw, _root: root } as AppConfig;
+}
+
+export function persistAiUpdate(cfg: AppConfig, patch: Partial<AppConfig["ai"]>): void {
+  const root = cfg._root ?? process.cwd();
+  const path = join(root, "settings.json");
+  if (!existsSync(path)) throw new Error("settings.json not found at " + path);
+  const raw = JSON.parse(readFileSync(path, "utf8"));
+  raw.ai = { ...(raw.ai ?? {}), ...patch };
+  writeFileSync(path, JSON.stringify(raw, null, 2) + "\n", "utf8");
+  cfg.ai = { ...cfg.ai, ...patch };
 }
