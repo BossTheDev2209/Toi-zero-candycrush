@@ -97,7 +97,7 @@ export function SettingsPage() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               placeholder={status?.hasCredentials ? "leave blank to keep existing" : "your TOI password"}
-              className="w-full rounded-2xl border border-[var(--color-dust)] bg-white px-4 py-2.5 focus:outline-none focus:border-[var(--color-ink)] font-mono"
+              className="w-full rounded-2xl border border-[var(--color-dust)] bg-white px-4 py-2.5 text-[var(--color-ink)] placeholder:text-[var(--color-slate)] focus:outline-none focus:border-[var(--color-ink)] font-mono"
             />
           </label>
 
