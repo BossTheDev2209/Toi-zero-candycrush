@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { CHEAT_ENTRIES } from "../data/cheatsheet/meta";
@@ -14,6 +14,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const [query, setQuery] = useState("");
   const [problems, setProblems] = useState<Problem[]>([]);
   const [cursor, setCursor] = useState(0);
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -51,6 +52,13 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   }, [entries, query]);
 
   const selectedIdx = filtered.length === 0 ? -1 : ((cursor % filtered.length) + filtered.length) % filtered.length;
+
+  useEffect(() => {
+    if (!open || selectedIdx < 0) return;
+    const list = listRef.current;
+    const option = list?.querySelector<HTMLElement>(`[data-palette-index="${selectedIdx}"]`);
+    option?.scrollIntoView({ block: "nearest" });
+  }, [open, selectedIdx, filtered.length]);
 
   function go(entry: Entry) {
     onClose();
@@ -95,13 +103,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           placeholder="Search problems, cheat sheet, docs..."
           className="w-full bg-transparent px-5 py-4 text-[16px] outline-none placeholder:text-[var(--color-slate)] text-[var(--color-ink)]"
         />
-        <div id="command-palette-results" role="listbox" className="max-h-[60vh] overflow-y-auto border-t border-[var(--color-dust)]">
+        <div ref={listRef} id="command-palette-results" role="listbox" className="max-h-[60vh] overflow-y-auto border-t border-[var(--color-dust)]">
           {filtered.length === 0 && <p className="px-5 py-6 text-sm text-[var(--color-slate)]">No matches.</p>}
           {filtered.map((entry, i) => (
             <button
               key={`${entry.source}-${entry.path}-${i}`}
               type="button"
               role="option"
+              data-palette-index={i}
               aria-selected={i === selectedIdx}
               onMouseEnter={() => setCursor(i)}
               onClick={() => go(entry)}
