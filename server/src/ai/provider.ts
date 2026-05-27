@@ -1,4 +1,7 @@
 import type { AppConfig } from "../config";
+import { askOllama } from "./ollama";
+import { askAnthropic } from "./anthropic";
+import { askOpenAi } from "./openai";
 
 export type ProviderName = "anthropic" | "openai" | "ollama";
 
@@ -26,8 +29,48 @@ export interface AiProviderDispatcher {
   current(): AiProvider;
 }
 
-// Implemented in Task 5 once the concrete providers exist. For now, exporting
-// the signatures keeps Task 4 (systemPrompt) free of provider implementation details.
-export function buildProvider(_cfg: AppConfig["ai"]): AiProvider {
-  throw new Error("buildProvider not implemented yet - see Task 5");
+export function buildProvider(ai: AppConfig["ai"]): AiProvider {
+  const provider = ai.provider ?? "ollama";
+  const maxTokens = ai.maxTokens ?? 1024;
+
+  if (provider === "anthropic") {
+    const model = ai.anthropicModel || "claude-sonnet-4-5";
+    return {
+      name: "anthropic",
+      model,
+      ask: (input) => askAnthropic({
+        apiKey: ai.anthropicApiKey ?? "",
+        model,
+        systemPrompt: input.systemPrompt,
+        messages: input.messages,
+        maxTokens: input.maxTokens ?? maxTokens,
+      }),
+    };
+  }
+  if (provider === "openai") {
+    const model = ai.openaiModel || "gpt-4o-mini";
+    return {
+      name: "openai",
+      model,
+      ask: (input) => askOpenAi({
+        apiKey: ai.openaiApiKey ?? "",
+        model,
+        systemPrompt: input.systemPrompt,
+        messages: input.messages,
+        maxTokens: input.maxTokens ?? maxTokens,
+      }),
+    };
+  }
+  const model = ai.ollamaModel || "qwen2.5-coder:7b";
+  return {
+    name: "ollama",
+    model,
+    ask: (input) => askOllama({
+      baseUrl: ai.ollamaUrl || "http://localhost:11434",
+      model,
+      systemPrompt: input.systemPrompt,
+      messages: input.messages,
+      maxTokens: input.maxTokens ?? maxTokens,
+    }),
+  };
 }
