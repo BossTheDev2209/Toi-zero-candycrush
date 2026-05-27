@@ -13,8 +13,16 @@ export type FetchBestScoreResult =
   | { ok: false; error: string };
 
 export function isLoginHtml(html: string): boolean {
-  const lower = html.slice(0, 2000).toLowerCase();
-  return lower.includes("please log in") || lower.includes("action='/login") || lower.includes('action="/login') || lower.includes(">login<");
+  // Scan the whole document — the login form/button can appear well past the head.
+  const lower = html.toLowerCase();
+  if (lower.includes("please log in")) return true;
+  if (lower.includes("action='/login")) return true;
+  if (lower.includes('action="/login')) return true;
+  if (lower.includes(">login</button>")) return true;
+  if (/<form[^>]+action=["'][^"']*login/i.test(html)) return true;
+  // CWSUtils args of all-zeros means unauthenticated landing page.
+  if (/new CMS\.CWSUtils\([^)]*,\s*0,\s*0,\s*0,\s*0,\s*0\)/.test(html)) return true;
+  return false;
 }
 
 export function parseBestScore(html: string): number {

@@ -34,4 +34,8 @@ export const api = {
   getQualification: () => fetch("/api/qualification").then(json<Qualification>),
   startScoreSync: () => fetch("/api/toi/sync-scores", { method: "POST" }).then(json<ScoreSyncProgress>),
   getScoreSyncProgress: () => fetch("/api/toi/sync-progress").then(json<ScoreSyncProgress>),
+  syncCounts: () =>
+    fetch("/api/toi/sync-counts", { method: "POST" }).then(
+      json<{ ok: true; seen: number; updated: number; notFoundInDb: string[]; uncounted: number } | { ok: false; error: string }>,
+    ),
 };

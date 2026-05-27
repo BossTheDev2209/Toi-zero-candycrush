@@ -6,6 +6,7 @@ import { problemRepo } from "../db/repo/problems";
 import { toiSubmissionRepo } from "../db/repo/toi_submissions";
 import { submitToToi } from "../toi/submit";
 import { fetchBestScore } from "../toi/scrapeScores";
+import { fetchCounts } from "../toi/scrapeCounts";
 
 const SubmitZ = z.object({
   language: z.enum(["c", "cpp", "py"]),
@@ -84,6 +85,27 @@ export function toiRouter(db: Database, cfg: AppConfig) {
     return c.json(result);
   });
 
+  r.post("/sync-counts", async (c) => {
+    if (!cfg.toi.baseUrl || !cfg.toi.cookie || !cfg.toi.xsrf) {
+      return c.json({ error: "TOI not configured. Set toi.baseUrl, toi.cookie, toi.xsrf in settings.json." }, 400);
+    }
+    const result = await fetchCounts({
+      baseUrl: cfg.toi.baseUrl,
+      cookie: cfg.toi.cookie,
+      xsrf: cfg.toi.xsrf,
+      extraHeaders: cfg.toi.extraHeaders,
+    });
+    if (!result.ok) return c.json({ ok: false, error: result.error }, 502);
+    const apply = pRepo.updateCountsBySlug(result.counts);
+    return c.json({
+      ok: true,
+      seen: result.counts.size,
+      updated: apply.updated,
+      notFoundInDb: apply.notFound,
+      uncounted: [...result.counts.entries()].filter(([, v]) => v === 0).length,
+    });
+  });
+
   r.post("/sync-scores", (c) => {
     if (syncProgress.running) return c.json(syncProgress, 409);
     if (!cfg.toi.baseUrl || !cfg.toi.cookie || !cfg.toi.xsrf) {
@@ -102,6 +124,17 @@ export function toiRouter(db: Database, cfg: AppConfig) {
       startedAt: new Date().toISOString(),
       finishedAt: null,
     };
+
+    // Kick off a one-shot counts sync in parallel with score sync. Failures here
+    // are non-fatal — the score sync still proceeds and the counts can be retried.
+    void fetchCounts({
+      baseUrl: cfg.toi.baseUrl,
+      cookie: cfg.toi.cookie,
+      xsrf: cfg.toi.xsrf,
+      extraHeaders: cfg.toi.extraHeaders,
+    }).then((countsResult) => {
+      if (countsResult.ok) pRepo.updateCountsBySlug(countsResult.counts);
+    });
 
     void runWithConcurrency(problems, 8, async (problem) => {
       const result = await fetchBestScore({

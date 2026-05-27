@@ -162,6 +162,23 @@ export function problemRepo(db: Database) {
       return info.changes > 0;
     },
 
+    updateCountsBySlug(map: Map<string, 0 | 1>): { updated: number; notFound: string[] } {
+      const stmt = db.prepare(
+        `UPDATE problem SET toi_counts = ?, updated_at = datetime('now') WHERE slug = ?`
+      );
+      const tx = db.transaction(() => {
+        let updated = 0;
+        const notFound: string[] = [];
+        for (const [slug, counts] of map) {
+          const info = stmt.run(counts, slug);
+          if (info.changes === 0) notFound.push(slug);
+          else updated += 1;
+        }
+        return { updated, notFound };
+      });
+      return tx();
+    },
+
     qualification(): { a1Count: number; a2a3Count: number; qualified: boolean } {
       const row = qualificationStmt.get() as { a1Count: number | null; a2a3Count: number | null };
       const a1Count = Number(row.a1Count ?? 0);
