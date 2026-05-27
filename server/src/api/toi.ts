@@ -85,6 +85,28 @@ export function toiRouter(db: Database, cfg: AppConfig) {
     return c.json(result);
   });
 
+  r.post("/counts-bulk", async (c) => {
+    // Accept a {slug: 0|1} map scraped client-side (chrome session authenticated)
+    // and persist via updateCountsBySlug. No server-side TOI auth needed.
+    const body = (await c.req.json()) as { counts?: Record<string, 0 | 1 | boolean> };
+    if (!body?.counts || typeof body.counts !== "object") {
+      return c.json({ error: "expected { counts: { slug: 0|1 } }" }, 400);
+    }
+    const map = new Map<string, 0 | 1>();
+    for (const [slug, v] of Object.entries(body.counts)) {
+      const num = v === true || v === 1 ? 1 : 0;
+      map.set(slug, num as 0 | 1);
+    }
+    const apply = pRepo.updateCountsBySlug(map);
+    return c.json({
+      ok: true,
+      seen: map.size,
+      updated: apply.updated,
+      notFoundInDb: apply.notFound,
+      uncounted: [...map.values()].filter((v) => v === 0).length,
+    });
+  });
+
   r.post("/sync-counts", async (c) => {
     if (!cfg.toi.baseUrl || !cfg.toi.cookie || !cfg.toi.xsrf) {
       return c.json({ error: "TOI not configured. Set toi.baseUrl, toi.cookie, toi.xsrf in settings.json." }, 400);

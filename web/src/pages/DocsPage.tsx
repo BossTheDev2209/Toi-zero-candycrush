@@ -35,7 +35,9 @@ const workflows = [
   ["Sync PDFs", "Use Sync PDFs on the path page to cache all TOI statements locally. Open a problem to download one PDF at a time."],
   ["Sync scores", "Use Sync Scores after logging into TOI in settings.json. Scores of 80 or more count toward qualification."],
   ["Sort and filter", "Use the path toolbar to sort inside A1, A2, and A3. Filters dim nodes instead of removing them so the path shape stays stable."],
-  ["Counts (นับ / ไม่นับ)", "Some TOI problems do not count toward your qualification milestone even if you score 80+. Hover a node to toggle counts. Uncounted nodes show a ไม่นับ badge and are excluded from the A1 and A2+A3 progress totals."],
+  ["Counts (นับ / ไม่นับ)", "Some TOI problems do not count toward your qualification milestone even if you score 80+. Hover a node to toggle counts manually. Uncounted nodes show a ไม่นับ badge and are excluded from the A1 and A2+A3 progress totals."],
+  ["Counts auto-sync (manual cookie)", "Use POST /api/toi/sync-counts. Reads the TOI overview using the server cookie, parses the นับ column, and updates every problem in one shot. Requires fresh cookie in settings.json."],
+  ["Counts auto-sync (browser tab)", "If your server cookie is expired but you are still logged in on TOI in chrome, open the TOI overview tab, open DevTools console, and paste the snippet from the troubleshooting section. It scrapes the table client-side and POSTs results to localhost. No cookie refresh needed."],
   ["Run code", "Open a problem, write C, C++, or Python, then run samples before running all local tests."],
   ["Download code", "Use Download in the workspace to save the current editor content as a .cpp, .c, or .py file named after the problem slug."],
   ["Submit to TOI", "Submit sends a real official TOI submission. After submit, open the TOI submissions page to confirm the verdict."],
@@ -47,6 +49,7 @@ const troubleshooting = [
   ["Web cannot reach API", "Make sure the server terminal is still running before starting or refreshing the web page."],
   ["Bun command not found", "Restart PowerShell after installing Bun. If it still fails, reinstall Bun and check your PATH."],
   ["Scores look old", "Run Sync Scores again. Toggling counts only affects qualification; it does not change the displayed score."],
+  ["Counts auto-sync from browser console", "Open the TOI overview tab in chrome (you must be logged in). Open DevTools console (F12) and paste:\n\n(async()=>{const c={};for(const tr of document.querySelectorAll('table tr')){const t=tr.querySelectorAll('td');if(t.length<7)continue;const s=tr.querySelector('a[href*=\"/tasks/\"]')?.href?.match(/\\/tasks\\/([^\\/]+)/)?.[1];if(!s)continue;const v=t[6]?.innerText.trim();if(v==='นับ')c[s]=1;else if(v==='ไม่นับ')c[s]=0;}const r=await fetch('http://localhost:8787/api/toi/counts-bulk',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({counts:c})});console.log(await r.json());})();\n\nThis bypasses cookie expiry — it uses your live chrome session directly."],
 ];
 
 function CodeBlock({ children }: { children: string }) {
