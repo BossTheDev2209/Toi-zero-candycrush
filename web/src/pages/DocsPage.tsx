@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { EyebrowLabel } from "../components/EyebrowLabel";
+import { DOC_SECTIONS } from "../lib/docsIndex";
 
 type Step = {
   title: string;
@@ -49,7 +50,7 @@ const troubleshooting = [
   ["Web cannot reach API", "Make sure the server terminal is still running before starting or refreshing the web page."],
   ["Bun command not found", "Restart PowerShell after installing Bun. If it still fails, reinstall Bun and check your PATH."],
   ["Scores look old", "Run Sync Scores again. Toggling counts only affects qualification; it does not change the displayed score."],
-  ["Counts auto-sync from browser console", "Open the TOI overview tab in chrome (you must be logged in). Open DevTools console (F12) and paste:\n\n(async()=>{const c={};for(const tr of document.querySelectorAll('table tr')){const t=tr.querySelectorAll('td');if(t.length<7)continue;const s=tr.querySelector('a[href*=\"/tasks/\"]')?.href?.match(/\\/tasks\\/([^\\/]+)/)?.[1];if(!s)continue;const v=t[6]?.innerText.trim();if(v==='นับ')c[s]=1;else if(v==='ไม่นับ')c[s]=0;}const r=await fetch('http://localhost:8787/api/toi/counts-bulk',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({counts:c})});console.log(await r.json());})();\n\nThis bypasses cookie expiry — it uses your live chrome session directly."],
+  ["Counts auto-sync from browser console", "Open the TOI overview tab in chrome (you must be logged in). Open DevTools console (F12) and paste:\n\n(async()=>{const c={};for(const tr of document.querySelectorAll('table tr')){const t=tr.querySelectorAll('td');if(t.length<7)continue;const s=tr.querySelector('a[href*=\"/tasks/\"]')?.href?.match(/\\/tasks\\/([^\\/]+)/)?.[1];if(!s)continue;const v=t[6]?.innerText.trim();if(v==='นับ')c[s]=1;else if(v==='ไม่นับ')c[s]=0;}const r=await fetch('http://localhost:8787/api/toi/counts-bulk',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({counts:c})});console.log(await r.json());})();\n\nThis bypasses cookie expiry - it uses your live chrome session directly."],
 ];
 
 function CodeBlock({ children }: { children: string }) {
@@ -135,10 +136,9 @@ export function DocsPage() {
         <aside className="h-fit rounded-[32px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-5 lg:sticky lg:top-28">
           <div className="text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--color-slate)]">On this page</div>
           <nav className="mt-4 grid gap-2 text-sm font-semibold text-[var(--color-ink)]">
-            <a href="#quick-start" className="rounded-full px-3 py-2 hover:bg-[var(--color-bone)]">Quick start</a>
-            <a href="#workflow" className="rounded-full px-3 py-2 hover:bg-[var(--color-bone)]">Using the web</a>
-            <a href="#submit" className="rounded-full px-3 py-2 hover:bg-[var(--color-bone)]">TOI submit</a>
-            <a href="#troubleshooting" className="rounded-full px-3 py-2 hover:bg-[var(--color-bone)]">Troubleshooting</a>
+            {DOC_SECTIONS.map((section) => (
+              <a key={section.anchor} href={`#${section.anchor}`} className="rounded-full px-3 py-2 hover:bg-[var(--color-bone)]">{section.title}</a>
+            ))}
           </nav>
         </aside>
 
@@ -164,10 +164,10 @@ export function DocsPage() {
             </div>
           </section>
 
-          <section id="workflow" className="rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
+          <section id="workflows" className="rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-6 md:p-8">
             <div className="mb-6 flex items-center gap-3">
               <span className="h-2 w-2 rounded-full bg-[var(--color-signal-light)]" />
-              <h2 className="text-[32px] leading-9">Using the web</h2>
+              <h2 className="text-[32px] leading-9">Workflows</h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {workflows.map(([title, body]) => (

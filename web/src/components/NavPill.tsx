@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getTheme, toggleTheme, type Theme } from "../lib/theme";
 
-export function NavPill() {
+export function NavPill({ onOpenPalette }: { onOpenPalette?: () => void } = {}) {
   const loc = useLocation();
   const onHome = loc.pathname === "/";
   const onDocs = loc.pathname === "/docs";
@@ -80,6 +80,14 @@ export function NavPill() {
             Settings
           </Link>
         </div>
+        <button
+          onClick={onOpenPalette}
+          aria-label="Open command palette"
+          title="Ctrl+K"
+          className="w-9 h-9 rounded-full grid place-items-center border border-[var(--color-dust)] text-[var(--color-ink)] hover:bg-[var(--color-lifted)] transition-colors text-xs font-bold"
+        >
+          ⌘K
+        </button>
         <button
           onClick={flip}
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
