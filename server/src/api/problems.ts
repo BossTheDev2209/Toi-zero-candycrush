@@ -32,6 +32,9 @@ const ProgressFlagsZ = z.object({
   toiPreviousYear: z.boolean(),
   toiPreviousYearNote: z.string().max(240).default(""),
 });
+const CountsZ = z.object({
+  toiCounts: z.boolean(),
+});
 
 export function problemsRouter(db: Database, problemsDir?: string) {
   const r = new Hono();
@@ -82,6 +85,15 @@ export function problemsRouter(db: Database, problemsDir?: string) {
     const id = Number(c.req.param("id"));
     const body = ProgressFlagsZ.parse(await c.req.json());
     const ok = repo.updateProgressFlags(id, body);
+    if (!ok) return c.json({ error: "not found" }, 404);
+    const p = repo.getById(id);
+    return c.json({ ok: true, problem: p ? withPdf(p) : null });
+  });
+
+  r.patch("/:id/counts", async (c) => {
+    const id = Number(c.req.param("id"));
+    const body = CountsZ.parse(await c.req.json());
+    const ok = repo.updateCounts(id, body.toiCounts);
     if (!ok) return c.json({ error: "not found" }, 404);
     const p = repo.getById(id);
     return c.json({ ok: true, problem: p ? withPdf(p) : null });

@@ -85,6 +85,9 @@ export function openDb(path: string): Database {
   if (!hasCol("toi_previous_year_note")) {
     db.exec("ALTER TABLE problem ADD COLUMN toi_previous_year_note TEXT NOT NULL DEFAULT '';");
   }
+  if (!hasCol("toi_counts")) {
+    db.exec("ALTER TABLE problem ADD COLUMN toi_counts INTEGER NOT NULL DEFAULT 1;");
+  }
   migrateLanguageChecks(db);
   return db;
 }

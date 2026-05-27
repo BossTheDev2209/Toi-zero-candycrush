@@ -31,6 +31,7 @@ export interface ProblemRow {
   toi_last_sync_at: string | null;
   toi_previous_year: 0 | 1;
   toi_previous_year_note: string;
+  toi_counts: 0 | 1;
   created_at: string;
   updated_at: string;
 }
@@ -71,10 +72,15 @@ export function problemRepo(db: Database) {
      SET toi_previous_year = ?, toi_previous_year_note = ?, updated_at = datetime('now')
      WHERE id = ?`
   );
+  const updateCountsStmt = db.prepare(
+    `UPDATE problem
+     SET toi_counts = ?, updated_at = datetime('now')
+     WHERE id = ?`
+  );
   const qualificationStmt = db.prepare(
     `SELECT
-      SUM(CASE WHEN category = 'A1' AND toi_best_score >= 80 THEN 1 ELSE 0 END) AS a1Count,
-      SUM(CASE WHEN category IN ('A2', 'A3') AND toi_best_score >= 80 THEN 1 ELSE 0 END) AS a2a3Count
+      SUM(CASE WHEN category = 'A1' AND toi_best_score >= 80 AND toi_counts = 1 THEN 1 ELSE 0 END) AS a1Count,
+      SUM(CASE WHEN category IN ('A2', 'A3') AND toi_best_score >= 80 AND toi_counts = 1 THEN 1 ELSE 0 END) AS a2a3Count
      FROM problem`
   );
   const deleteTests = db.prepare(`DELETE FROM test_case WHERE problem_id = ?`);
@@ -148,6 +154,11 @@ export function problemRepo(db: Database) {
     updateProgressFlags(id: number, input: { toiPreviousYear: boolean; toiPreviousYearNote: string }): boolean {
       const note = input.toiPreviousYearNote.trim().slice(0, 240);
       const info = updateProgressFlagsStmt.run(input.toiPreviousYear ? 1 : 0, note, id);
+      return info.changes > 0;
+    },
+
+    updateCounts(id: number, counts: boolean): boolean {
+      const info = updateCountsStmt.run(counts ? 1 : 0, id);
       return info.changes > 0;
     },
 

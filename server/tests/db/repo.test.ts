@@ -194,6 +194,29 @@ describe("problemRepo", () => {
     expect(repo.qualification()).toEqual({ a1Count: 1, a2a3Count: 0, qualified: false });
   });
 
+  test("toi_counts defaults to 1 and excludes qualification when 0", () => {
+    const db = openDb(":memory:");
+    const repo = problemRepo(db);
+    const id = repo.create({
+      slug: "A1-200", title: "Uncounted AC", statementMd: "", inputMd: "", outputMd: "",
+      category: "A1", timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [], extraTests: [],
+    });
+
+    expect(repo.getById(id)!.toi_counts).toBe(1);
+    repo.updateToiScore(id, 100, "2026-05-27T00:00:00.000Z");
+    expect(repo.qualification()).toEqual({ a1Count: 1, a2a3Count: 0, qualified: false });
+
+    expect(repo.updateCounts(id, false)).toBe(true);
+    expect(repo.updateCounts(9999, false)).toBe(false);
+    expect(repo.getById(id)!.toi_counts).toBe(0);
+    expect(repo.qualification()).toEqual({ a1Count: 0, a2a3Count: 0, qualified: false });
+
+    repo.updateCounts(id, true);
+    expect(repo.getById(id)!.toi_counts).toBe(1);
+    expect(repo.qualification()).toEqual({ a1Count: 1, a2a3Count: 0, qualified: false });
+  });
+
   test("migrates older problem tables with previous-year columns", () => {
     const dir = mkdtempSync(join(tmpdir(), "toizero-migration-"));
     const path = join(dir, "old.db");

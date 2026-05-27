@@ -35,7 +35,7 @@ const workflows = [
   ["Sync PDFs", "Use Sync PDFs on the path page to cache all TOI statements locally. Open a problem to download one PDF at a time."],
   ["Sync scores", "Use Sync Scores after logging into TOI in settings.json. Scores of 80 or more count toward qualification."],
   ["Sort and filter", "Use the path toolbar to sort inside A1, A2, and A3. Filters dim nodes instead of removing them so the path shape stays stable."],
-  ["Previous-year marks", "Hover a node and mark previous-year when you solved it before. It is a visual note only; it does not change qualification counts."],
+  ["Counts (นับ / ไม่นับ)", "Some TOI problems do not count toward your qualification milestone even if you score 80+. Hover a node to toggle counts. Uncounted nodes show a ไม่นับ badge and are excluded from the A1 and A2+A3 progress totals."],
   ["Run code", "Open a problem, write C, C++, or Python, then run samples before running all local tests."],
   ["Download code", "Use Download in the workspace to save the current editor content as a .cpp, .c, or .py file named after the problem slug."],
   ["Submit to TOI", "Submit sends a real official TOI submission. After submit, open the TOI submissions page to confirm the verdict."],
@@ -46,7 +46,7 @@ const troubleshooting = [
   ["PDF download fails", "Check that the TOI base URL in settings.json matches the problem source URL and that your cookie is fresh."],
   ["Web cannot reach API", "Make sure the server terminal is still running before starting or refreshing the web page."],
   ["Bun command not found", "Restart PowerShell after installing Bun. If it still fails, reinstall Bun and check your PATH."],
-  ["Scores look old", "Run Sync Scores again. Previous-year marks are manual notes and do not replace TOI score sync."],
+  ["Scores look old", "Run Sync Scores again. Toggling counts only affects qualification; it does not change the displayed score."],
 ];
 
 function CodeBlock({ children }: { children: string }) {

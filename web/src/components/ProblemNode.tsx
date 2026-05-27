@@ -8,10 +8,9 @@ interface Props {
   suggested: boolean;
   matched: boolean;
   size: number;
-  previousYear: boolean;
-  previousYearNote: string;
+  counts: boolean;
   onClick: () => void;
-  onTogglePreviousYear: () => void;
+  onToggleCounts: () => void;
 }
 
 const RING: Record<ProblemNodeStatus, string> = {
@@ -30,10 +29,9 @@ export function ProblemNode({
   suggested,
   matched,
   size,
-  previousYear,
-  previousYearNote,
+  counts,
   onClick,
-  onTogglePreviousYear,
+  onToggleCounts,
 }: Props) {
   const letter = title.trim().charAt(0).toUpperCase() || slug.charAt(0).toUpperCase();
   return (
@@ -45,7 +43,7 @@ export function ProblemNode({
         style={{ width: size, height: size }}
         aria-label={`Open ${slug} ${title}`}
       >
-        <span className={`problem-node-orb relative flex h-full w-full items-center justify-center rounded-full ${RING[status]} ${suggested ? "is-suggested" : ""} ${previousYear ? "is-previous-year" : ""}`}>
+        <span className={`problem-node-orb relative flex h-full w-full items-center justify-center rounded-full ${RING[status]} ${suggested ? "is-suggested" : ""} ${!counts ? "is-uncounted" : ""}`}>
           {status === "locked" ? (
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-slate)]">
               <rect x="5" y="10" width="14" height="10" rx="2" />
@@ -56,9 +54,9 @@ export function ProblemNode({
               {letter}
             </span>
           )}
-          {previousYear && (
-            <span className="previous-year-badge absolute left-1/2 top-1.5 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-[0.04em]">
-              OLD
+          {!counts && (
+            <span className="uncounted-badge absolute left-1/2 top-1.5 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-[0.04em]">
+              ไม่นับ
             </span>
           )}
           {(status === "eighty" || status === "perfect") && (
@@ -70,19 +68,21 @@ export function ProblemNode({
           )}
         </span>
       </button>
-      <div className="problem-node-tip absolute left-1/2 top-full z-10 w-40 -translate-x-1/2 pt-2 text-center text-[11px] font-medium text-[var(--color-graphite)] opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+      <div className="problem-node-tip absolute left-1/2 top-full z-10 w-44 -translate-x-1/2 pt-2 text-center text-[11px] font-medium text-[var(--color-graphite)] opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
         <div className="rounded-[20px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-2 shadow-[var(--shadow-nav)]">
           <div>{slug} {score > 0 ? `${score}` : ""}</div>
-          {previousYearNote && <div className="mt-1 truncate text-[10px] text-[var(--color-slate)]">{previousYearNote}</div>}
+          <div className="mt-1 text-[10px] text-[var(--color-slate)]">
+            {counts ? "นับ — counts toward qualification" : "ไม่นับ — does NOT count"}
+          </div>
           <button
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              onTogglePreviousYear();
+              onToggleCounts();
             }}
             className="mt-2 rounded-full border border-[var(--color-dust)] px-2.5 py-1 text-[10px] text-[var(--color-ink)]"
           >
-            {previousYear ? "Unmark old" : "Mark old"}
+            {counts ? "Mark uncounted" : "Mark counted"}
           </button>
         </div>
       </div>

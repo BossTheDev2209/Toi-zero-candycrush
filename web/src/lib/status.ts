@@ -4,10 +4,10 @@ import { problemSection } from "./path-geometry";
 export type ProblemNodeStatus = "unsolved" | "attempted" | "eighty" | "perfect" | "locked";
 
 export function qualificationFromProblems(problems: Problem[]): Qualification {
-  const a1Count = problems.filter((p) => problemSection(p.category) === "A1" && p.toi_best_score >= 80).length;
+  const a1Count = problems.filter((p) => problemSection(p.category) === "A1" && p.toi_best_score >= 80 && p.toi_counts === 1).length;
   const a2a3Count = problems.filter((p) => {
     const section = problemSection(p.category);
-    return (section === "A2" || section === "A3") && p.toi_best_score >= 80;
+    return (section === "A2" || section === "A3") && p.toi_best_score >= 80 && p.toi_counts === 1;
   }).length;
   return { a1Count, a2a3Count, qualified: a1Count >= 20 && a2a3Count >= 20 };
 }
@@ -25,8 +25,8 @@ export function nodeStatus(problem: Problem, qualification: Qualification, opene
   return "unsolved";
 }
 
-export function isPreviousYear(problem: Problem): boolean {
-  return problem.toi_previous_year === 1;
+export function isCounted(problem: Problem): boolean {
+  return problem.toi_counts === 1;
 }
 
 export function filterProblem(problem: Problem, mode: ProblemFilterMode, status: ProblemNodeStatus, query: string): boolean {
@@ -38,7 +38,8 @@ export function filterProblem(problem: Problem, mode: ProblemFilterMode, status:
   if (mode === "unsolved") return status === "unsolved" || status === "locked";
   if (mode === "80+") return problem.toi_best_score >= 80;
   if (mode === "100") return problem.toi_best_score >= 100;
-  if (mode === "previous-year") return isPreviousYear(problem);
+  if (mode === "counted") return isCounted(problem);
+  if (mode === "uncounted") return !isCounted(problem);
   return true;
 }
 
@@ -58,7 +59,6 @@ export function sortProblems(
   return [...problems].sort((a, b) => {
     if (mode === "score") return (b.toi_best_score - a.toi_best_score) || a.slug.localeCompare(b.slug);
     if (mode === "status") return (STATUS_RANK[statusFor(a)] - STATUS_RANK[statusFor(b)]) || a.slug.localeCompare(b.slug);
-    if (mode === "previous-year") return (Number(isPreviousYear(b)) - Number(isPreviousYear(a))) || a.slug.localeCompare(b.slug);
     if (mode === "unsolved-first") {
       const aOpen = statusFor(a) === "unsolved" || statusFor(a) === "locked" ? 0 : 1;
       const bOpen = statusFor(b) === "unsolved" || statusFor(b) === "locked" ? 0 : 1;

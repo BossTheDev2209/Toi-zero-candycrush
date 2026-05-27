@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS problem (
   toi_last_sync_at TEXT,
   toi_previous_year INTEGER NOT NULL DEFAULT 0,
   toi_previous_year_note TEXT NOT NULL DEFAULT '',
+  toi_counts INTEGER NOT NULL DEFAULT 1,
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );

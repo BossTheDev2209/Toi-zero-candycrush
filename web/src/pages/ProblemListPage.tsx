@@ -103,15 +103,12 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
     }
   }
 
-  async function togglePreviousYear(problem: Problem) {
-    const nextFlag = problem.toi_previous_year !== 1;
-    const previousYearNote = nextFlag ? (problem.toi_previous_year_note || "previous year") : "";
-    const result = await api.updateProgressFlags(problem.id, {
-      toiPreviousYear: nextFlag,
-      toiPreviousYearNote: previousYearNote,
-    });
+  async function toggleCounts(problem: Problem) {
+    const nextCounts = problem.toi_counts !== 1;
+    const result = await api.updateCounts(problem.id, nextCounts);
     if (result.problem) {
       setProblems((current) => current?.map((p) => p.id === problem.id ? { ...p, ...result.problem } : p) ?? current);
+      try { setQualification(await api.getQualification()); } catch { /* noop */ }
     }
   }
 
@@ -161,7 +158,6 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
                 <option value="slug">Slug</option>
                 <option value="score">Score</option>
                 <option value="status">Status</option>
-                <option value="previous-year">Old first</option>
                 <option value="unsolved-first">Unsolved first</option>
               </select>
             </label>
@@ -172,7 +168,8 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
                 <option value="unsolved">Unsolved</option>
                 <option value="80+">80+</option>
                 <option value="100">100</option>
-                <option value="previous-year">Old</option>
+                <option value="counted">Counts (นับ)</option>
+                <option value="uncounted">Uncounted (ไม่นับ)</option>
               </select>
             </label>
           </div>
@@ -228,10 +225,9 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
                           suggested={problem.id === suggestedId}
                           matched={matched}
                           size={point.diameter}
-                          previousYear={problem.toi_previous_year === 1}
-                          previousYearNote={problem.toi_previous_year_note}
+                          counts={problem.toi_counts === 1}
                           onClick={() => openProblem(problem)}
-                          onTogglePreviousYear={() => void togglePreviousYear(problem)}
+                          onToggleCounts={() => void toggleCounts(problem)}
                         />
                       </div>
                     );
