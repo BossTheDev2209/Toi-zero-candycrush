@@ -6,6 +6,8 @@ export function NavPill() {
   const loc = useLocation();
   const onHome = loc.pathname === "/";
   const onDocs = loc.pathname === "/docs";
+  const onCheat = loc.pathname.startsWith("/cheatsheet");
+  const onSettings = loc.pathname === "/settings";
   const [theme, setLocalTheme] = useState<Theme>(getTheme());
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
@@ -60,6 +62,22 @@ export function NavPill() {
             }`}
           >
             Docs
+          </Link>
+          <Link
+            to="/cheatsheet/cpp"
+            className={`text-[16px] font-medium tracking-[-0.03em] ${
+              onCheat ? "text-[var(--color-ink)]" : "text-[var(--color-graphite)]"
+            }`}
+          >
+            Cheat sheet
+          </Link>
+          <Link
+            to="/settings"
+            className={`text-[16px] font-medium tracking-[-0.03em] ${
+              onSettings ? "text-[var(--color-ink)]" : "text-[var(--color-graphite)]"
+            }`}
+          >
+            Settings
           </Link>
         </div>
         <button

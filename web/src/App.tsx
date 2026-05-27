@@ -5,6 +5,8 @@ import { ProblemListPage } from "./pages/ProblemListPage";
 import { ProblemEditModal } from "./pages/ProblemEditModal";
 import { ProblemWorkspacePage } from "./pages/ProblemWorkspacePage";
 import { DocsPage } from "./pages/DocsPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { CheatSheetPage } from "./pages/CheatSheetPage";
 
 export default function App() {
   const [editing, setEditing] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
@@ -20,6 +22,9 @@ export default function App() {
         />
         <Route path="/p/:id" element={<ProblemWorkspacePage />} />
         <Route path="/docs" element={<DocsPage />} />
+        <Route path="/cheatsheet/:lang" element={<CheatSheetPage />} />
+        <Route path="/cheatsheet" element={<CheatSheetPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
       {editing.open && (
         <ProblemEditModal
