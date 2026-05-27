@@ -71,7 +71,7 @@ export function SettingsPage() {
       <div className="mb-4"><EyebrowLabel>Settings</EyebrowLabel></div>
       <h1 className="mb-8">TOI account.</h1>
 
-      <section className="rounded-[40px] bg-[var(--color-lifted)] p-8">
+      <section className="motion-surface rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-8">
         <div className="mb-4 text-sm text-[var(--color-slate)]">
           <p>Stored locally in <code className="font-mono text-[12px]">settings.json</code> (gitignored). Used only to refresh your TOI session cookie when it expires.</p>
           <p className="mt-2"><strong>Never shared</strong>: credentials stay on this machine. Files are not committed to git.</p>
@@ -112,12 +112,12 @@ export function SettingsPage() {
             )}
           </div>
 
-          {msg && <div className="mt-3 text-sm text-[var(--color-signal-light)]">{msg}</div>}
-          {err && <div className="mt-3 text-sm text-[var(--color-signal)]">{err}</div>}
+          {msg && <div className="mt-3 text-sm text-[var(--color-success)]">{msg}</div>}
+          {err && <div className="mt-3 text-sm text-[var(--color-danger)]">{err}</div>}
         </div>
       </section>
 
-      <section className="mt-8 rounded-[40px] bg-[var(--color-lifted)] p-8 text-sm">
+      <section className="motion-surface mt-8 rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-8 text-sm">
         <div className="text-[12px] font-bold tracking-[0.04em] uppercase text-[var(--color-slate)] mb-3">Status</div>
         {status === null ? (
           <p className="text-[var(--color-slate)]">Loading…</p>
@@ -133,7 +133,7 @@ export function SettingsPage() {
         </p>
       </section>
 
-      <section className="mt-8 rounded-[40px] bg-[var(--color-lifted)] p-8">
+      <section className="motion-surface mt-8 rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-8">
         <div className="text-[12px] font-bold tracking-[0.04em] uppercase text-[var(--color-slate)] mb-3">AI assistant</div>
         <AiSettings />
       </section>
@@ -225,8 +225,8 @@ function AiSettings() {
       <div className="pt-2">
         <PillButton onClick={save}>Save AI settings</PillButton>
       </div>
-      {msg && <div className="text-sm text-[var(--color-signal-light)]">{msg}</div>}
-      {err && <div className="text-sm text-[var(--color-signal)]">{err}</div>}
+      {msg && <div className="text-sm text-[var(--color-success)]">{msg}</div>}
+      {err && <div className="text-sm text-[var(--color-danger)]">{err}</div>}
 
       {status && (
         <div className="mt-4 text-sm text-[var(--color-slate)]">

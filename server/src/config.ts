@@ -16,6 +16,10 @@ export interface AppConfig {
     cookie: string;
     xsrf: string;
     extraHeaders: Record<string, string>;
+    /** Optional stored credentials for auto-refreshing the cookie. Plaintext, gitignored. */
+    username?: string;
+    password?: string;
+    lastLoginAt?: string;
     /** Deprecated: prefer baseUrl. Kept for back-compat with older settings.json. */
     submitUrl?: string;
   };
@@ -52,6 +56,21 @@ export function loadConfig(start = process.cwd()): AppConfig {
   const path = existsSync(local) ? local : example;
   const raw = JSON.parse(readFileSync(path, "utf8"));
   return { ...raw, _root: root } as AppConfig;
+}
+
+/**
+ * Update specific TOI fields and write them back to settings.json.
+ * Only touches the requested keys; never echoes the password in logs.
+ * Mutates the passed cfg in place so future calls see the refreshed values.
+ */
+export function persistToiUpdate(cfg: AppConfig, patch: Partial<AppConfig["toi"]>): void {
+  const root = cfg._root ?? process.cwd();
+  const path = join(root, "settings.json");
+  if (!existsSync(path)) throw new Error("settings.json not found at " + path);
+  const raw = JSON.parse(readFileSync(path, "utf8"));
+  raw.toi = { ...(raw.toi ?? {}), ...patch };
+  writeFileSync(path, JSON.stringify(raw, null, 2) + "\n", "utf8");
+  cfg.toi = { ...cfg.toi, ...patch };
 }
 
 export function persistAiUpdate(cfg: AppConfig, patch: Partial<AppConfig["ai"]>): void {

@@ -2,11 +2,13 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { Database } from "bun:sqlite";
 import type { AppConfig } from "../config";
+import { persistToiUpdate } from "../config";
 import { problemRepo } from "../db/repo/problems";
 import { toiSubmissionRepo } from "../db/repo/toi_submissions";
 import { submitToToi } from "../toi/submit";
 import { fetchBestScore } from "../toi/scrapeScores";
 import { fetchCounts } from "../toi/scrapeCounts";
+import { loginToToi } from "../toi/login";
 
 const SubmitZ = z.object({
   language: z.enum(["c", "cpp", "py"]),
@@ -45,9 +47,64 @@ async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T
   await Promise.all(workers);
 }
 
+const CredentialsZ = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+
 export function toiRouter(db: Database, cfg: AppConfig) {
   const r = new Hono();
   const pRepo = problemRepo(db);
+
+  /** Auto-refresh on cookie expiry: if username/password present, log in + persist. */
+  async function refreshCookieIfPossible(): Promise<{ ok: boolean; error?: string }> {
+    if (!cfg.toi.username || !cfg.toi.password) {
+      return { ok: false, error: "no credentials stored — set toi.username + toi.password" };
+    }
+    const result = await loginToToi({
+      baseUrl: cfg.toi.baseUrl,
+      username: cfg.toi.username,
+      password: cfg.toi.password,
+    });
+    if (!result.ok) return { ok: false, error: result.error };
+    persistToiUpdate(cfg, {
+      cookie: result.cookie,
+      xsrf: result.xsrf,
+      lastLoginAt: new Date().toISOString(),
+    });
+    return { ok: true };
+  }
+
+  /**
+   * Public auth status — never leaks the password itself. Returns whether credentials
+   * are configured and when the last successful login was.
+   */
+  r.get("/auth-status", (c) => c.json({
+    hasCredentials: Boolean(cfg.toi.username && cfg.toi.password),
+    username: cfg.toi.username ?? null,
+    lastLoginAt: cfg.toi.lastLoginAt ?? null,
+    baseUrl: cfg.toi.baseUrl,
+  }));
+
+  /**
+   * Save credentials. Body: { username, password }. Persists to settings.json, then
+   * attempts an immediate login to validate. On success returns ok + lastLoginAt.
+   * On failure the credentials ARE still persisted (user may have a typo to fix later).
+   */
+  r.post("/credentials", async (c) => {
+    const body = CredentialsZ.parse(await c.req.json());
+    persistToiUpdate(cfg, { username: body.username, password: body.password });
+    const refresh = await refreshCookieIfPossible();
+    if (!refresh.ok) return c.json({ ok: false, saved: true, error: refresh.error }, 400);
+    return c.json({ ok: true, saved: true, lastLoginAt: cfg.toi.lastLoginAt });
+  });
+
+  /** Trigger an explicit re-login using stored credentials. */
+  r.post("/login", async (c) => {
+    const refresh = await refreshCookieIfPossible();
+    if (!refresh.ok) return c.json({ ok: false, error: refresh.error }, 400);
+    return c.json({ ok: true, lastLoginAt: cfg.toi.lastLoginAt });
+  });
   const repo = toiSubmissionRepo(db);
 
   r.post("/:problemId/submit", async (c) => {
@@ -108,19 +165,26 @@ export function toiRouter(db: Database, cfg: AppConfig) {
   });
 
   r.post("/sync-counts", async (c) => {
-    if (!cfg.toi.baseUrl || !cfg.toi.cookie || !cfg.toi.xsrf) {
-      return c.json({ error: "TOI not configured. Set toi.baseUrl, toi.cookie, toi.xsrf in settings.json." }, 400);
+    if (!cfg.toi.baseUrl) {
+      return c.json({ error: "TOI not configured. Set toi.baseUrl in settings.json." }, 400);
     }
-    const result = await fetchCounts({
+    const tryOnce = () => fetchCounts({
       baseUrl: cfg.toi.baseUrl,
       cookie: cfg.toi.cookie,
       xsrf: cfg.toi.xsrf,
       extraHeaders: cfg.toi.extraHeaders,
     });
-    if (!result.ok) return c.json({ ok: false, error: result.error }, 502);
+    let result = await tryOnce();
+    let refreshed = false;
+    if (!result.ok && result.error.includes("cookie expired")) {
+      const refresh = await refreshCookieIfPossible();
+      if (refresh.ok) { refreshed = true; result = await tryOnce(); }
+    }
+    if (!result.ok) return c.json({ ok: false, error: result.error, refreshed }, 502);
     const apply = pRepo.updateCountsBySlug(result.counts);
     return c.json({
       ok: true,
+      refreshed,
       seen: result.counts.size,
       updated: apply.updated,
       notFoundInDb: apply.notFound,
