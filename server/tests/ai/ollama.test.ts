@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { askOllama } from "../../src/ai/ollama";
+import { askOllama, parseKeepAlive } from "../../src/ai/ollama";
 
 const realFetch = globalThis.fetch;
 let calls: { url: string; init: RequestInit }[] = [];
@@ -52,12 +52,23 @@ describe("askOllama", () => {
     expect(body.stream).toBe(true);
   });
 
-  test("passes keep_alive to ollama (defaults to unload, accepts override)", async () => {
+  test("passes keep_alive to ollama as the right JSON type (number for bare ints, string for durations)", async () => {
+    // Default: send the number 0 (NOT the string "0"). Ollama's keep_alive
+    // parses bare numeric strings via Go's time.ParseDuration and rejects them
+    // with "time: missing unit in duration".
     await askOllama({
       baseUrl: "http://localhost:11434",
       model: "x", systemPrompt: "x", messages: [{ role: "user", content: "go" }], maxTokens: 1,
     });
-    expect(JSON.parse(calls[0]!.init.body as string).keep_alive).toBe("0");
+    expect(JSON.parse(calls[0]!.init.body as string).keep_alive).toBe(0);
+
+    calls = [];
+    await askOllama({
+      baseUrl: "http://localhost:11434",
+      model: "x", systemPrompt: "x", messages: [{ role: "user", content: "go" }], maxTokens: 1,
+      keepAlive: "-1",
+    });
+    expect(JSON.parse(calls[0]!.init.body as string).keep_alive).toBe(-1);
 
     calls = [];
     await askOllama({
@@ -66,6 +77,16 @@ describe("askOllama", () => {
       keepAlive: "5m",
     });
     expect(JSON.parse(calls[0]!.init.body as string).keep_alive).toBe("5m");
+  });
+
+  test("parseKeepAlive maps user input to the Ollama-accepted JSON type", () => {
+    expect(parseKeepAlive("0")).toBe(0);
+    expect(parseKeepAlive("-1")).toBe(-1);
+    expect(parseKeepAlive("30")).toBe(30);
+    expect(parseKeepAlive("5m")).toBe("5m");
+    expect(parseKeepAlive("1h30m")).toBe("1h30m");
+    expect(parseKeepAlive(undefined)).toBe(0);
+    expect(parseKeepAlive("")).toBe(0);
   });
 
   test("treats an aborted stream as a non-error stop and returns whatever text it received", async () => {

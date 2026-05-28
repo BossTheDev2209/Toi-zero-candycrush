@@ -1,5 +1,20 @@
 import type { AiAskResult } from "./provider";
 
+/**
+ * Coerce a `keep_alive` setting into the shape Ollama actually accepts.
+ *   "0"  → 0      (number; unload immediately)
+ *   "-1" → -1     (number; keep loaded forever)
+ *   "30" → 30     (number; 30 seconds)
+ *   "5m" → "5m"   (string; Go duration, kept as-is)
+ *   undefined / "" → 0
+ */
+export function parseKeepAlive(v: string | undefined): string | number {
+  const s = (v ?? "0").trim();
+  if (!s) return 0;
+  if (/^-?\d+$/.test(s)) return Number(s);
+  return s;
+}
+
 export interface AskOllamaInput {
   baseUrl: string;
   model: string;
@@ -42,7 +57,12 @@ export async function askOllama(input: AskOllamaInput): Promise<AiAskResult> {
     stream: true,
     think: true,
     options: { num_predict: input.maxTokens },
-    keep_alive: (input.keepAlive ?? "0") as unknown,
+    // Ollama parses `keep_alive` two ways: a JSON number = seconds (0 unloads
+    // immediately, -1 keeps forever), or a JSON string with a Go time-unit
+    // suffix ("5m", "1h"). Bare numeric strings like "0" / "-1" go through
+    // time.ParseDuration and fail with "missing unit in duration". Coerce
+    // numerics to actual numbers; leave unit-bearing strings as strings.
+    keep_alive: parseKeepAlive(input.keepAlive) as unknown,
     messages: [
       { role: "system", content: input.systemPrompt },
       ...input.messages.map((m) => ({ role: m.role, content: m.content })),
