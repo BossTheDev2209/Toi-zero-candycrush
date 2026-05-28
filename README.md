@@ -1,82 +1,25 @@
 # TOIZero
 
-TOIZero is a single-user local practice app for Thailand Olympiad in Informatics preparation. It lets you browse TOI Zero problems, read cached PDFs, write C, C++, or Python in the browser, run code locally, and submit to the official TOI grader when your `settings.json` has a valid TOI session.
+Local TOI Zero practice app for browsing problems, running code, syncing TOI scores, and submitting to TOI.
 
-The visual system follows [info/DESIGN.md](info/DESIGN.md). The main implementation history lives in [docs/superpowers/plans/](docs/superpowers/plans/).
+## Quick Setup
 
-## What You Need
-
-- Windows 10 or 11
-- Bun 1.3 or newer
-- `g++` and `gcc` on your PATH if you want local judging
-- A TOI login cookie and XSRF token only if you want PDF sync, score sync, or official submission
-
-## Install Bun
-
-Open PowerShell and run:
+Download or clone this repo, open PowerShell in the project folder, then run:
 
 ```powershell
-powershell -c "irm bun.sh/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -File .\setup.ps1 -NoStart
 ```
 
-Close PowerShell, open it again, then check:
-
-```powershell
-bun --version
-```
-
-## Clone And Install
-
-```powershell
-git clone <your-repo-url> TOIZERO
-cd TOIZERO
-bun install
-```
-
-If the project is already on your machine:
-
-```powershell
-cd C:\Projects\TOIZERO
-bun install
-```
-
-## Configure Settings
-
-Create your local settings file:
-
-```powershell
-Copy-Item settings.example.json settings.json
-```
-
-Open `settings.json` in an editor. For basic local use, the defaults are enough. For TOI integration, fill these fields:
-
-```json
-{
-  "toi": {
-    "baseUrl": "https://toi-coding.informatics.buu.ac.th/00-pre-toi",
-    "cookie": "",
-    "xsrf": "",
-    "extraHeaders": {}
-  }
-}
-```
-
-Do not commit `settings.json`. It is gitignored because it can contain your TOI session.
+That script checks Bun, installs packages, creates `settings.json` if needed, and checks for `gcc` / `g++`.
 
 ## Start The App
 
-Use two PowerShell windows.
+Open two PowerShell windows in the project folder.
 
 Window 1:
 
 ```powershell
 bun run dev:server
-```
-
-Expected:
-
-```text
-TOIZero API listening on http://localhost:8787
 ```
 
 Window 2:
@@ -85,55 +28,31 @@ Window 2:
 bun run dev:web
 ```
 
-Open:
+Then open:
 
 ```text
 http://localhost:5173
 ```
 
-## Common Workflows
+Enjoy.
 
-- **Browse problems:** open the path page at `http://localhost:5173`.
-- **Sort/filter problems:** use the Sort and Filter pills under search. Sorting stays inside A1, A2, and A3.
-- **Mark old solves:** hover a node and click `Mark old`. This tags problems solved in a previous year but does not remove them from qualification counts.
-- **Open workspace:** click a node.
-- **Download one PDF:** open a TOI problem and click `Download PDF`.
-- **Download missing PDFs:** click `Sync PDFs` on the path page.
-- **Sync scores:** open the qualification chip and click `Sync from TOI`.
-- **Run code locally:** write C, C++, or Python, then click `Run samples` or `Run all`.
-- **Submit to TOI:** click `Submit to TOI`. This sends a real submission to the official grader.
+## TOI Login
 
-## Cheat Sheets
+Open:
 
-The in-app cheat sheets start from language fundamentals before moving into competitive-programming patterns:
-
-- **C:** program shape, comments, variables, data types, operators, branches, loops, functions, arrays, strings, and pointers.
-- **C++:** program shape, variables, types, operators, branches, loops, functions, references, vectors, strings, and containers.
-- **Python:** statements, indentation, variables, types, operators, branches, loops, functions, lists, dictionaries, sets, and strings.
-
-Open `http://localhost:5173/cheatsheet` when you want a beginner-friendly language reference.
-
-## Checks
-
-Run server tests:
-
-```powershell
-bun --cwd server test
+```text
+http://localhost:5173/settings
 ```
 
-Build the frontend:
+Enter TOI username/password, then click **Save and re-login**. The app stores the local session in `settings.json`, which is gitignored.
 
-```powershell
-bun --cwd web build
-```
+## Common Fixes
 
-## Troubleshooting
+| Problem | Fix |
+| --- | --- |
+| `bun` not found after setup installs it | Close PowerShell, open it again, then rerun setup. |
+| `bun: command not found: vite` | Run `powershell -ExecutionPolicy Bypass -File .\setup.ps1 -NoStart` again. |
+| TOI sync does nothing | Go to `/settings`, click **Save and re-login**, then try sync again. |
+| Compiler errors before code runs | Install `gcc` and `g++`, then reopen PowerShell. |
 
-- **`bun` not found:** close and reopen PowerShell after installing Bun.
-- **Port already used:** stop the old `bun` process or change `apiPort` / `port` in `settings.json`.
-- **PDF sync says cookie expired:** log in to TOI again and update `settings.json`.
-- **Submit fails:** your TOI cookie or XSRF token is probably stale.
-- **Compiler errors before your code runs:** check that `g++` and `gcc` are installed and on PATH.
-- **No problems show up:** make sure the server is running on `http://localhost:8787`.
-
-More detailed beginner setup is in [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
+Never commit or share `settings.json`; it can contain TOI credentials, cookies, and API keys.
