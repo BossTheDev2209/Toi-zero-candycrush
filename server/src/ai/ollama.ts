@@ -24,16 +24,24 @@ export interface AskOllamaInput {
  * causes Ollama to halt generation on the next token. That's what the Stop button
  * in the UI relies on — abort the signal, the fetch errors, Ollama stops, RAM
  * returns to the keepalive idle path.
+ *
+ * Reasoning support: passes `think: true` so reason-capable models (qwen3,
+ * deepseek-r1, gpt-oss, etc.) split their output into a `message.thinking`
+ * stream alongside `message.content`. Models that don't support thinking simply
+ * ignore the flag. We aggregate the two streams separately so the UI can
+ * collapse the reasoning into its own block.
+ *
+ * Stats: captures `total_duration` from the final NDJSON frame (Ollama's
+ * end-to-end wall time in nanoseconds) and converts to milliseconds, along
+ * with prompt + eval token counts.
  */
 export async function askOllama(input: AskOllamaInput): Promise<AiAskResult> {
   const base = input.baseUrl.replace(/\/$/, "");
   const body = {
     model: input.model,
     stream: true,
+    think: true,
     options: { num_predict: input.maxTokens },
-    // Ollama parses "0" / 0 as unload-immediately; treat unset as "0" here so
-    // the default behavior frees RAM after each reply. Cast through unknown to
-    // allow the string|number union Ollama actually accepts on the wire.
     keep_alive: (input.keepAlive ?? "0") as unknown,
     messages: [
       { role: "system", content: input.systemPrompt },
@@ -41,8 +49,11 @@ export async function askOllama(input: AskOllamaInput): Promise<AiAskResult> {
     ],
   };
   let accumulated = "";
+  let accumulatedThinking = "";
   let tokensIn: number | undefined;
   let tokensOut: number | undefined;
+  let totalDurationNs: number | undefined;
+  const startedAt = Date.now();
   try {
     const res = await fetch(`${base}/api/chat`, {
       method: "POST",
@@ -55,8 +66,8 @@ export async function askOllama(input: AskOllamaInput): Promise<AiAskResult> {
       return { ok: false, text: "", error: `Ollama HTTP ${res.status}: ${text.slice(0, 200)}` };
     }
 
-    // Stream path: read NDJSON, accumulate `message.content` from each frame, capture
-    // token counts from the final frame (Ollama emits `done: true` with eval counts).
+    // Stream path: NDJSON, frame-by-frame. Each frame can carry partial content,
+    // partial thinking, or (final frame) `done: true` with eval counts + total_duration.
     if (res.body && typeof (res.body as ReadableStream<Uint8Array>).getReader === "function") {
       const reader = (res.body as ReadableStream<Uint8Array>).getReader();
       const decoder = new TextDecoder();
@@ -73,43 +84,69 @@ export async function askOllama(input: AskOllamaInput): Promise<AiAskResult> {
           if (!line) continue;
           try {
             const obj = JSON.parse(line) as {
-              message?: { content?: string };
+              message?: { content?: string; thinking?: string };
               prompt_eval_count?: number;
               eval_count?: number;
+              total_duration?: number;
             };
             if (typeof obj.message?.content === "string") accumulated += obj.message.content;
+            if (typeof obj.message?.thinking === "string") accumulatedThinking += obj.message.thinking;
             if (typeof obj.prompt_eval_count === "number") tokensIn = obj.prompt_eval_count;
             if (typeof obj.eval_count === "number") tokensOut = obj.eval_count;
+            if (typeof obj.total_duration === "number") totalDurationNs = obj.total_duration;
           } catch {
             // ignore malformed line
           }
         }
       }
-      return { ok: true, text: accumulated, tokensIn, tokensOut };
+      return finalize();
     }
 
-    // Fallback for mocks / older runtimes that return a buffered Response: parse as one-shot JSON.
+    // Fallback for mocks / older runtimes that return a buffered Response.
     const text = await res.text();
     try {
       const obj = JSON.parse(text) as {
-        message?: { content?: string };
+        message?: { content?: string; thinking?: string };
         prompt_eval_count?: number;
         eval_count?: number;
+        total_duration?: number;
       };
-      return {
-        ok: true,
-        text: obj.message?.content ?? "",
-        tokensIn: obj.prompt_eval_count,
-        tokensOut: obj.eval_count,
-      };
+      accumulated = obj.message?.content ?? "";
+      accumulatedThinking = obj.message?.thinking ?? "";
+      tokensIn = obj.prompt_eval_count;
+      tokensOut = obj.eval_count;
+      totalDurationNs = obj.total_duration;
+      return finalize();
     } catch {
       return { ok: false, text: "", error: "ollama returned no body" };
     }
   } catch (e: any) {
     if (e?.name === "AbortError" || input.signal?.aborted) {
       // Stopping mid-stream is a normal flow, not a failure. Return what we have.
-      return { ok: !!accumulated, text: accumulated, error: accumulated ? undefined : "aborted" };
+      return {
+        ok: !!accumulated,
+        text: accumulated,
+        thinking: accumulatedThinking || undefined,
+        durationMs: Date.now() - startedAt,
+        error: accumulated ? undefined : "aborted",
+      };
     }
-    return { ok: false, text: "", error: e?.message ?? String(e) };
+    return { ok: false, text: "", error: e?.message ?? String(e), durationMs: Date.now() - startedAt };
+  }
+
+  function finalize(): AiAskResult {
+    // Prefer Ollama's own `total_duration` (covers queueing + model load + eval).
+    // Fall back to our wall-clock if the frame was missing it.
+    const durationMs = totalDurationNs !== undefined
+      ? Math.max(1, Math.round(totalDurationNs / 1_000_000))
+      : Date.now() - startedAt;
+    return {
+      ok: true,
+      text: accumulated,
+      thinking: accumulatedThinking.trim() || undefined,
+      tokensIn,
+      tokensOut,
+      durationMs,
+    };
   }
 }

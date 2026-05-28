@@ -54,6 +54,7 @@ export function renderClaudeCliPrompt(
 export async function askClaudeCli(input: AskClaudeCliInput): Promise<AiAskResult> {
   const prompt = renderClaudeCliPrompt(input.systemPrompt, input.messages);
 
+  const startedAt = Date.now();
   return new Promise<AiAskResult>((resolve) => {
     const args = [
       "--print",
@@ -94,6 +95,9 @@ export async function askClaudeCli(input: AskClaudeCliInput): Promise<AiAskResul
       if (settled) return;
       settled = true;
       input.signal?.removeEventListener("abort", onAbort);
+      // Set durationMs if the caller didn't already provide one (claude --print's
+      // own duration_ms field is preferred when present; otherwise wall-clock).
+      if (r.durationMs === undefined) r.durationMs = Date.now() - startedAt;
       resolve(r);
     };
 
@@ -122,6 +126,7 @@ export async function askClaudeCli(input: AskClaudeCliInput): Promise<AiAskResul
           is_error?: boolean;
           message?: { content?: string };
           usage?: { input_tokens?: number; output_tokens?: number };
+          duration_ms?: number;
         };
         const text = obj?.result ?? obj?.message?.content ?? "";
         if (obj?.is_error) {
@@ -133,6 +138,7 @@ export async function askClaudeCli(input: AskClaudeCliInput): Promise<AiAskResul
           text,
           tokensIn: obj?.usage?.input_tokens,
           tokensOut: obj?.usage?.output_tokens,
+          durationMs: typeof obj?.duration_ms === "number" ? obj.duration_ms : undefined,
         });
       } catch {
         // Not JSON — treat raw stdout as the answer. Useful if the user pinned an

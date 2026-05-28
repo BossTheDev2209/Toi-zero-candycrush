@@ -579,11 +579,36 @@ html.dark .uncounted-badge {
   transition: transform 180ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth), background-color 180ms var(--motion-smooth), border-color 180ms var(--motion-smooth);
 }
 
+/* The tab's job is to be clicked, not to advertise itself with motion. Keep
+ * a quiet color shift on hover so it still reads as interactive, but don't
+ * translate or amp the shadow — the previous translateX nudge read as a
+ * jiggle, not affordance. */
 .ai-help-tab:hover {
   background: var(--color-selection-tint);
-  border-color: color-mix(in srgb, var(--color-signal-light) 50%, var(--color-dust));
-  box-shadow: 0 16px 34px color-mix(in srgb, var(--color-signal-light) 18%, transparent);
-  transform: translateY(-50%) translateX(-3px);
+  border-color: color-mix(in srgb, var(--color-signal-light) 40%, var(--color-dust));
+}
+
+/* Edit-mode container: focus signal lives on the container's border via
+ * focus-within, not on the textarea's own focus-ring (which was leaking
+ * through as the bright orange box you saw). Suppressing the inner ring
+ * lets the container handle the focus state cleanly. */
+.ai-edit-shell { transition: border-color 180ms var(--motion-smooth); }
+.ai-edit-shell:focus-within { border-color: var(--color-ink); }
+.ai-edit-shell textarea:focus,
+.ai-edit-shell textarea:focus-visible { outline: none; }
+
+/* Reasoning disclosure. Native <details> with a custom triangle that rotates
+ * on open. Color uses the project's info-soft so it reads as "additional
+ * context" rather than competing with the answer body. */
+.ai-reasoning summary::-webkit-details-marker,
+.ai-reasoning summary::marker { display: none; }
+.ai-reasoning summary span:first-child {
+  display: inline-block;
+  transition: transform 180ms var(--motion-smooth);
+  font-size: 8px;
+}
+.ai-reasoning[open] summary span:first-child {
+  transform: rotate(90deg);
 }
 
 .ai-help-panel {

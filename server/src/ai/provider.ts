@@ -20,6 +20,10 @@ export interface AiAskResult {
   tokensIn?: number;
   tokensOut?: number;
   error?: string;
+  /** Reasoning content from think-capable models (qwen3, deepseek-r1, etc.) when available. */
+  thinking?: string;
+  /** End-to-end wall time of this provider call, milliseconds. Set by every provider. */
+  durationMs?: number;
 }
 
 export interface AiProvider {

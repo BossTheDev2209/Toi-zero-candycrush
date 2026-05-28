@@ -3,7 +3,31 @@ import { api } from "../lib/api";
 import { MarkdownRender } from "./MarkdownRender";
 import { PillButton } from "./PillButton";
 
-interface AiMessage { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; created_at: string; }
+interface AiMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  thinking: string | null;
+  duration_ms: number | null;
+  created_at: string;
+}
+
+/** Render the assistant metadata footer: tokens, wall time, decode rate. */
+function statsLine(m: AiMessage): string | null {
+  const parts: string[] = [];
+  if (m.tokens_in || m.tokens_out) parts.push(`${m.tokens_in ?? 0} in · ${m.tokens_out ?? 0} out`);
+  if (m.duration_ms && m.duration_ms > 0) {
+    const seconds = m.duration_ms / 1000;
+    parts.push(seconds >= 10 ? `${Math.round(seconds)}s` : `${seconds.toFixed(1)}s`);
+    if (m.tokens_out && m.tokens_out > 0) {
+      const rate = Math.round((m.tokens_out / seconds) * 10) / 10;
+      if (Number.isFinite(rate) && rate > 0) parts.push(`${rate} tok/s`);
+    }
+  }
+  return parts.length ? parts.join(" · ") : null;
+}
 
 export function AiHelpPanel({ problemId }: { problemId: number }) {
   const [open, setOpen] = useState(false);
@@ -153,7 +177,7 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
           if (m.role === "user" && isEditing) {
             return (
               <div key={m.id} className="ai-message flex justify-end">
-                <div className="w-[92%] rounded-[18px] rounded-br-md bg-[var(--color-lifted)] border border-[var(--color-ink)] px-3 py-2.5">
+                <div className="ai-edit-shell w-[94%] rounded-[18px] rounded-br-md bg-[var(--color-lifted)] border border-[var(--color-dust)] px-4 py-3">
                   <textarea
                     autoFocus
                     value={editDraft}
@@ -163,13 +187,29 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
                       if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
                     }}
                     rows={Math.min(8, Math.max(2, editDraft.split("\n").length))}
-                    className="w-full resize-none bg-transparent text-[var(--color-ink)] placeholder:text-[var(--color-slate)] text-sm focus:outline-none"
+                    className="w-full resize-none bg-transparent text-[var(--color-ink)] placeholder:text-[var(--color-slate)] text-sm leading-relaxed focus:outline-none focus-visible:outline-none"
+                    style={{ outline: "none" }}
                   />
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-[var(--color-slate)]">Edit truncates the reply that followed.</span>
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--color-dust)] pt-2.5">
+                    <span className="text-[11px] text-[var(--color-slate)]">Truncates the reply below.</span>
                     <div className="flex items-center gap-2">
-                      <button onClick={cancelEdit} className="text-xs text-[var(--color-slate)] hover:text-[var(--color-ink)]">Cancel</button>
-                      <PillButton onClick={() => void saveEdit()} disabled={!editDraft.trim() || busy}>Save &amp; resend</PillButton>
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="rounded-full px-3 py-1 text-[12px] text-[var(--color-slate)] hover:text-[var(--color-ink)]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void saveEdit()}
+                        disabled={!editDraft.trim() || busy}
+                        className="motion-press inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ink)] text-[var(--color-canvas)] px-3.5 py-1 text-[12px] font-medium tracking-[-0.01em] disabled:opacity-50"
+                        aria-label="Resend edited message"
+                      >
+                        Resend
+                        <span className="text-[10px] opacity-70" aria-hidden="true">⌘↵</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -181,10 +221,32 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
               <div className={m.role === "user"
                 ? "max-w-[85%] rounded-[18px] rounded-br-md bg-[var(--color-ink)] text-[var(--color-canvas)] px-4 py-2.5 text-sm"
                 : "max-w-[92%] rounded-[18px] rounded-bl-md bg-[var(--color-lifted)] border border-[var(--color-dust)] px-4 py-2.5 text-sm"}>
-                {m.role === "assistant" ? <MarkdownRender>{m.content}</MarkdownRender> : m.content}
-                {m.role === "assistant" && (m.tokens_in || m.tokens_out) && (
-                  <div className="mt-1 text-[10px] text-[var(--color-slate)]">{m.tokens_in ?? 0} in · {m.tokens_out ?? 0} out</div>
+                {m.role === "assistant" && m.thinking && m.thinking.trim() && (
+                  // Reason-capable models (qwen3, deepseek-r1, etc.) emit their
+                  // chain-of-thought separately from the answer. Tuck it into a
+                  // collapsible block — present, but not in the way.
+                  <details className="ai-reasoning mb-2 -mx-1 rounded-[14px] bg-[color-mix(in_srgb,var(--color-info-soft)_50%,transparent)] border border-[var(--color-dust)] px-3 py-2 text-xs">
+                    <summary className="cursor-pointer list-none flex items-center gap-2 text-[var(--color-graphite)] font-medium select-none">
+                      <span aria-hidden="true" className="text-[10px]">▶</span>
+                      Reasoning
+                      <span className="text-[10px] text-[var(--color-slate)] font-normal">
+                        ({m.thinking.length} chars)
+                      </span>
+                    </summary>
+                    <div className="mt-2 pt-2 border-t border-[var(--color-dust)] whitespace-pre-wrap text-[var(--color-graphite)] leading-relaxed">
+                      {m.thinking}
+                    </div>
+                  </details>
                 )}
+                {m.role === "assistant" ? <MarkdownRender>{m.content}</MarkdownRender> : m.content}
+                {m.role === "assistant" && (() => {
+                  const line = statsLine(m);
+                  return line ? (
+                    <div className="mt-1.5 text-[10px] text-[var(--color-slate)] font-medium tabular-nums tracking-[0.01em]">
+                      {line}
+                    </div>
+                  ) : null;
+                })()}
               </div>
               {m.role === "user" && m.id > 0 && (
                 <button

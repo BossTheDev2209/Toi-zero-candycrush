@@ -11,6 +11,7 @@ export interface AskAnthropicInput {
 
 export async function askAnthropic(input: AskAnthropicInput): Promise<AiAskResult> {
   if (!input.apiKey) return { ok: false, text: "", error: "Anthropic API key missing" };
+  const startedAt = Date.now();
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -41,11 +42,12 @@ export async function askAnthropic(input: AskAnthropicInput): Promise<AiAskResul
       text,
       tokensIn: data.usage?.input_tokens,
       tokensOut: data.usage?.output_tokens,
+      durationMs: Date.now() - startedAt,
     };
   } catch (e: any) {
     if (e?.name === "AbortError" || input.signal?.aborted) {
-      return { ok: false, text: "", error: "aborted" };
+      return { ok: false, text: "", error: "aborted", durationMs: Date.now() - startedAt };
     }
-    return { ok: false, text: "", error: e?.message ?? String(e) };
+    return { ok: false, text: "", error: e?.message ?? String(e), durationMs: Date.now() - startedAt };
   }
 }

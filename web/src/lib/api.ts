@@ -75,7 +75,7 @@ export const api = {
   }) =>
     fetch("/api/ai/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; provider: string }>),
   getAiHistory: (problemId: number) =>
-    fetch(`/api/ai/history/${problemId}`).then(json<{ messages: { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; created_at: string }[] }>),
+    fetch(`/api/ai/history/${problemId}`).then(json<{ messages: { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; thinking: string | null; duration_ms: number | null; created_at: string }[] }>),
   clearAiHistory: (problemId: number) =>
     fetch(`/api/ai/history/${problemId}`, { method: "DELETE" }).then(json<{ deleted: number }>),
   askAi: (body: { problemId: number; message: string; forceFullSolution?: boolean }) =>

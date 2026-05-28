@@ -71,6 +71,11 @@ CREATE TABLE IF NOT EXISTS ai_message (
   model       TEXT,
   tokens_in   INTEGER,
   tokens_out  INTEGER,
+  -- Reasoning content from think-capable models (qwen3, deepseek-r1, etc).
+  -- Kept separate from content so the UI can collapse it.
+  thinking    TEXT,
+  -- End-to-end wall time for this assistant turn, in milliseconds.
+  duration_ms INTEGER,
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_ai_message_problem ON ai_message(problem_id, created_at);

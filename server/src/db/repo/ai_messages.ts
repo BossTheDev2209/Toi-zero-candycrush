@@ -9,6 +9,8 @@ export interface AiMessageRow {
   model: string | null;
   tokens_in: number | null;
   tokens_out: number | null;
+  thinking: string | null;
+  duration_ms: number | null;
   created_at: string;
 }
 
@@ -20,12 +22,14 @@ export interface CreateAiMessageInput {
   model: string | null;
   tokensIn: number | null;
   tokensOut: number | null;
+  thinking?: string | null;
+  durationMs?: number | null;
 }
 
 export function aiMessageRepo(db: Database) {
   const insertStmt = db.prepare(
-    `INSERT INTO ai_message (problem_id, role, content, provider, model, tokens_in, tokens_out)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO ai_message (problem_id, role, content, provider, model, tokens_in, tokens_out, thinking, duration_ms)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const listStmt = db.prepare(
     `SELECT * FROM ai_message WHERE problem_id = ? ORDER BY created_at, id`
@@ -42,7 +46,8 @@ export function aiMessageRepo(db: Database) {
     create(input: CreateAiMessageInput): number {
       const info = insertStmt.run(
         input.problemId, input.role, input.content,
-        input.provider, input.model, input.tokensIn, input.tokensOut
+        input.provider, input.model, input.tokensIn, input.tokensOut,
+        input.thinking ?? null, input.durationMs ?? null,
       );
       return Number(info.lastInsertRowid);
     },

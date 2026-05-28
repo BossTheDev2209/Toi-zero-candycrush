@@ -11,6 +11,7 @@ export interface AskOpenAiInput {
 
 export async function askOpenAi(input: AskOpenAiInput): Promise<AiAskResult> {
   if (!input.apiKey) return { ok: false, text: "", error: "OpenAI API key missing" };
+  const startedAt = Date.now();
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -41,11 +42,12 @@ export async function askOpenAi(input: AskOpenAiInput): Promise<AiAskResult> {
       text: data.choices?.[0]?.message?.content ?? "",
       tokensIn: data.usage?.prompt_tokens,
       tokensOut: data.usage?.completion_tokens,
+      durationMs: Date.now() - startedAt,
     };
   } catch (e: any) {
     if (e?.name === "AbortError" || input.signal?.aborted) {
-      return { ok: false, text: "", error: "aborted" };
+      return { ok: false, text: "", error: "aborted", durationMs: Date.now() - startedAt };
     }
-    return { ok: false, text: "", error: e?.message ?? String(e) };
+    return { ok: false, text: "", error: e?.message ?? String(e), durationMs: Date.now() - startedAt };
   }
 }

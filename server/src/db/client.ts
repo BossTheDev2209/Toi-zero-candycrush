@@ -100,10 +100,19 @@ export function openDb(path: string): Database {
         model       TEXT,
         tokens_in   INTEGER,
         tokens_out  INTEGER,
+        thinking    TEXT,
+        duration_ms INTEGER,
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
       );
       CREATE INDEX IF NOT EXISTS idx_ai_message_problem ON ai_message(problem_id, created_at);
     `);
+  } else {
+    // Migrate existing DBs: thinking + duration_ms were added after the initial
+    // schema. Probe and ALTER if missing — no data loss, columns default to NULL.
+    const aiCols = db.query("PRAGMA table_info(ai_message)").all() as { name: string }[];
+    const hasAiCol = (name: string) => aiCols.some((c) => c.name === name);
+    if (!hasAiCol("thinking")) db.exec("ALTER TABLE ai_message ADD COLUMN thinking TEXT;");
+    if (!hasAiCol("duration_ms")) db.exec("ALTER TABLE ai_message ADD COLUMN duration_ms INTEGER;");
   }
   migrateLanguageChecks(db);
   return db;

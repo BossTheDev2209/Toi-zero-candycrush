@@ -204,14 +204,18 @@ export function aiRouter(db: Database, cfg: AppConfig) {
           model: provider.model,
           tokensIn: result.tokensIn ?? null,
           tokensOut: result.tokensOut ?? null,
+          thinking: result.thinking ?? null,
+          durationMs: result.durationMs ?? null,
         });
       }
       return c.json({
         ok: false,
         cancelled: true,
         text: partial,
+        thinking: result.thinking,
         provider: provider.name,
         model: provider.model,
+        durationMs: result.durationMs,
       });
     }
 
@@ -227,15 +231,19 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       model: provider.model,
       tokensIn: result.tokensIn ?? null,
       tokensOut: result.tokensOut ?? null,
+      thinking: result.thinking ?? null,
+      durationMs: result.durationMs ?? null,
     });
 
     return c.json({
       ok: true,
       text: result.text,
+      thinking: result.thinking,
       provider: provider.name,
       model: provider.model,
       tokensIn: result.tokensIn,
       tokensOut: result.tokensOut,
+      durationMs: result.durationMs,
     });
   });
 
@@ -320,11 +328,15 @@ export function aiRouter(db: Database, cfg: AppConfig) {
           model: provider.model,
           tokensIn: result.tokensIn ?? null,
           tokensOut: result.tokensOut ?? null,
+          thinking: result.thinking ?? null,
+          durationMs: result.durationMs ?? null,
         });
       }
       return c.json({
         ok: false, cancelled: true, text: partial,
+        thinking: result.thinking,
         provider: provider.name, model: provider.model,
+        durationMs: result.durationMs,
       });
     }
     if (!result.ok) {
@@ -338,11 +350,15 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       model: provider.model,
       tokensIn: result.tokensIn ?? null,
       tokensOut: result.tokensOut ?? null,
+      thinking: result.thinking ?? null,
+      durationMs: result.durationMs ?? null,
     });
     return c.json({
       ok: true, text: result.text,
+      thinking: result.thinking,
       provider: provider.name, model: provider.model,
       tokensIn: result.tokensIn, tokensOut: result.tokensOut,
+      durationMs: result.durationMs,
     });
   });
 
