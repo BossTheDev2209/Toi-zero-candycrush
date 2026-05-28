@@ -59,6 +59,21 @@ export const api = {
   }>),
   getAiPersonalization: () =>
     fetch("/api/ai/personalization").then(json<{ userProfile: string; tutorStyle: string }>),
+  getAiConfig: () =>
+    fetch("/api/ai/config").then(json<{
+      provider: "anthropic" | "openai" | "ollama" | "claude-cli";
+      anthropicModel: string;
+      openaiModel: string;
+      ollamaUrl: string;
+      ollamaModel: string;
+      ollamaKeepAlive: string;
+      claudeCliModel: string;
+      maxTokens: number;
+      userProfile: string;
+      tutorStyle: string;
+      hasAnthropicKey: boolean;
+      hasOpenaiKey: boolean;
+    }>),
   saveAiSettings: (body: {
     provider: "anthropic" | "openai" | "ollama" | "claude-cli";
     anthropicApiKey?: string;

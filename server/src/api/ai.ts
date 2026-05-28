@@ -66,6 +66,28 @@ export function aiRouter(db: Database, cfg: AppConfig) {
     tutorStyle: cfg.ai?.tutorStyle ?? "",
   }));
 
+  /**
+   * Full non-secret AI config for the Settings form. Without this, the form
+   * pre-populates from useState defaults and clicking Save overwrites whatever
+   * was previously persisted (e.g. the user's chosen ollamaModel reverts to
+   * the qwen2.5-coder default the next time they open Settings). API keys are
+   * still hidden — only `hasAnthropicKey` / `hasOpenaiKey` booleans leak.
+   */
+  r.get("/config", (c) => c.json({
+    provider: cfg.ai?.provider ?? "ollama",
+    anthropicModel: cfg.ai?.anthropicModel ?? "claude-sonnet-4-5",
+    openaiModel: cfg.ai?.openaiModel ?? "gpt-4o-mini",
+    ollamaUrl: cfg.ai?.ollamaUrl ?? "http://localhost:11434",
+    ollamaModel: cfg.ai?.ollamaModel ?? "qwen2.5-coder:7b",
+    ollamaKeepAlive: cfg.ai?.ollamaKeepAlive ?? "0",
+    claudeCliModel: cfg.ai?.claudeCliModel ?? "sonnet",
+    maxTokens: cfg.ai?.maxTokens ?? 1024,
+    userProfile: cfg.ai?.userProfile ?? "",
+    tutorStyle: cfg.ai?.tutorStyle ?? "",
+    hasAnthropicKey: Boolean(cfg.ai?.anthropicApiKey),
+    hasOpenaiKey: Boolean(cfg.ai?.openaiApiKey),
+  }));
+
   r.get("/history/:problemId", (c) => {
     const id = Number(c.req.param("problemId"));
     return c.json({ messages: mRepo.listForProblem(id) });

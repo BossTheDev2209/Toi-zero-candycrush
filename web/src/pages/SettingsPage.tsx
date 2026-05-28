@@ -163,14 +163,28 @@ function AiSettings() {
   async function loadStatus() {
     try { setStatus(await api.getAiStatus()); } catch (e: any) { setErr(e?.message ?? String(e)); }
   }
-  async function loadPersonalization() {
+  /**
+   * Pull every persisted AI config field so the form reflects what's actually
+   * on disk. Without this, the inputs render their useState defaults and
+   * pressing Save quietly overwrites whatever was previously persisted (the
+   * model you picked, your keep_alive duration, etc.).
+   */
+  async function loadConfig() {
     try {
-      const p = await api.getAiPersonalization();
-      setUserProfile(p.userProfile);
-      setTutorStyle(p.tutorStyle);
+      const c = await api.getAiConfig();
+      setProvider(c.provider);
+      setAnthropicModel(c.anthropicModel);
+      setOpenaiModel(c.openaiModel);
+      setOllamaUrl(c.ollamaUrl);
+      setOllamaModel(c.ollamaModel);
+      setOllamaKeepAlive(c.ollamaKeepAlive);
+      setClaudeCliModel(c.claudeCliModel);
+      setMaxTokens(c.maxTokens);
+      setUserProfile(c.userProfile);
+      setTutorStyle(c.tutorStyle);
     } catch (e: any) { setErr(e?.message ?? String(e)); }
   }
-  useEffect(() => { void loadStatus(); void loadPersonalization(); }, []);
+  useEffect(() => { void loadStatus(); void loadConfig(); }, []);
 
   async function save() {
     setMsg(null); setErr(null);
@@ -191,7 +205,8 @@ function AiSettings() {
       });
       setMsg("Saved.");
       setAnthropicKey(""); setOpenaiKey("");
-      await loadStatus();
+      // Re-fetch the canonical state so future opens reflect what's on disk.
+      await Promise.all([loadStatus(), loadConfig()]);
     } catch (e: any) { setErr(e?.message ?? String(e)); }
   }
 
