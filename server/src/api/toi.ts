@@ -292,14 +292,41 @@ export function toiRouter(db: Database, cfg: AppConfig) {
       if (countsResult.ok) pRepo.updateCountsBySlug(countsResult.counts);
     });
 
+    // Single-flight recovery: 8 workers run in parallel. If the cookie/xsrf is
+    // stale, all 8 simultaneously hit the same auth error. Without this guard
+    // we'd fire 8 concurrent /login round-trips and clobber each other's
+    // Set-Cookie. The shared promise ensures exactly one recovery attempt and
+    // every worker reuses its outcome.
+    let recoveryPromise: Promise<{ ok: boolean }> | null = null;
+    let recoveryGivenUp = false;
+    const tryRecover = (): Promise<{ ok: boolean }> => {
+      if (recoveryGivenUp) return Promise.resolve({ ok: false });
+      if (!recoveryPromise) {
+        recoveryPromise = recoverFromXsrf403().then((r) => {
+          if (!r.ok) recoveryGivenUp = true;
+          return { ok: r.ok };
+        });
+      }
+      return recoveryPromise;
+    };
+
     void runWithConcurrency(problems, 8, async (problem) => {
-      const result = await fetchBestScore({
+      const doFetch = () => fetchBestScore({
         baseUrl: cfg.toi.baseUrl,
         cookie: cfg.toi.cookie,
         xsrf: cfg.toi.xsrf,
         extraHeaders: cfg.toi.extraHeaders,
         slug: problem.slug,
       });
+      let result = await doFetch();
+      // Auth-flavored failure → try to recover once for the whole batch, then
+      // retry this worker's request. Other workers awaiting the same promise
+      // pick up the refreshed cookie/xsrf via cfg mutation.
+      if (!result.ok && /cookie|xsrf|login|HTTP\s*403/i.test(result.error)) {
+        const refresh = await tryRecover();
+        if (refresh.ok) result = await doFetch();
+      }
+      // Re-do the result handling inline so we don't double-process below.
       if (result.ok) {
         if (pRepo.updateToiScore(problem.id, result.score, new Date().toISOString())) {
           syncProgress.updated += 1;
