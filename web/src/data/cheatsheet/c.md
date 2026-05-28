@@ -1,5 +1,166 @@
 # C cheat sheet
 
+## Program shape
+A C program is made of headers, functions, and statements. Execution starts at `main`.
+
+```c
+#include <stdio.h>
+
+int main(void) {
+    printf("Hello, world!\n");
+    return 0;
+}
+```
+
+- `#include <stdio.h>` imports standard input/output functions.
+- `main` is the first function the program runs.
+- `{ ... }` groups statements into a block.
+- Every statement ends with `;`.
+- `return 0;` means the program finished successfully.
+
+## Comments
+Comments explain code to humans. The compiler ignores them.
+
+```c
+// One-line comment
+
+/*
+   Multi-line comment
+*/
+```
+
+Use comments to explain why something works, not to repeat what the line already says.
+
+## Variables and data types
+A variable has a type, a name, and a value. C needs the type before the variable name.
+
+```c
+int age = 16;
+long long population = 7000000000LL;
+double price = 19.95;
+char grade = 'A';
+```
+
+Common types:
+
+- `int`: whole numbers, usually about -2 billion to 2 billion.
+- `long long`: bigger whole numbers, useful for sums and products.
+- `double`: decimal numbers.
+- `char`: one character, written with single quotes.
+
+```c
+int x;      // declared, but not initialized
+x = 10;    // assigned later
+
+int y = 20; // declared and initialized
+```
+
+Local variables are not automatically zero. Give them a value before reading them.
+
+## Operators
+Operators combine or compare values.
+
+```c
+int a = 7;
+int b = 3;
+
+printf("%d\n", a + b); // 10
+printf("%d\n", a - b); // 4
+printf("%d\n", a * b); // 21
+printf("%d\n", a / b); // 2, integer division
+printf("%d\n", a % b); // 1, remainder
+```
+
+Comparison operators produce true or false-like values:
+
+```c
+a == b  // equal
+a != b  // not equal
+a < b
+a <= b
+a > b
+a >= b
+```
+
+Logical operators:
+
+```c
+if (age >= 13 && age <= 19) printf("teen\n");
+if (score < 0 || score > 100) printf("invalid\n");
+if (!(x == 0)) printf("not zero\n");
+```
+
+## If, else, and conditions
+Use `if` when code should run only in some cases.
+
+```c
+int score = 75;
+
+if (score >= 80) {
+    printf("pass\n");
+} else if (score >= 50) {
+    printf("retry\n");
+} else {
+    printf("fail\n");
+}
+```
+
+In C, `0` is false. Any nonzero value is true.
+
+## Loops
+Loops repeat code.
+
+Use `for` when you know how many times to repeat:
+
+```c
+for (int i = 0; i < 5; i++) {
+    printf("%d\n", i);
+}
+```
+
+Use `while` when the stopping point depends on a condition:
+
+```c
+int x = 10;
+while (x > 0) {
+    printf("%d\n", x);
+    x--;
+}
+```
+
+`break` stops a loop. `continue` skips to the next loop step.
+
+```c
+for (int i = 1; i <= 10; i++) {
+    if (i == 5) continue;
+    if (i == 8) break;
+    printf("%d\n", i);
+}
+```
+
+## Functions
+A function is a named block of reusable code. Give it inputs as parameters and return a result.
+
+```c
+int add(int a, int b) {
+    return a + b;
+}
+
+int main(void) {
+    int answer = add(2, 3);
+    printf("%d\n", answer);
+    return 0;
+}
+```
+
+Use `void` when a function returns nothing.
+
+```c
+void print_line(void) {
+    printf("-----\n");
+}
+```
+
 ## I/O
 Use `scanf` and `printf` for predictable speed. Always pass addresses to `scanf`.
 

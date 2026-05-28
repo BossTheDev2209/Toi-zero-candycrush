@@ -1,5 +1,188 @@
 # C++ cheat sheet
 
+## Program shape
+A C++ program is made of headers, functions, and statements. Execution starts at `main`.
+
+```cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello, world!\n";
+    return 0;
+}
+```
+
+- `#include <iostream>` imports `cin` and `cout`.
+- `using namespace std;` lets you write `cout` instead of `std::cout`.
+- `main` is where the program starts.
+- `{ ... }` groups statements into a block.
+- Every statement ends with `;`.
+
+For contests, many people use this header because it includes most standard libraries:
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+```
+
+## Comments
+Comments explain code to humans. The compiler ignores them.
+
+```cpp
+// One-line comment
+
+/*
+   Multi-line comment
+*/
+```
+
+Use comments for intent, edge cases, or formulas that are not obvious.
+
+## Variables and data types
+A variable stores a value. C++ needs a type before the variable name.
+
+```cpp
+int age = 16;
+long long population = 7000000000LL;
+double price = 19.95;
+char grade = 'A';
+bool passed = true;
+string name = "Somchai";
+```
+
+Common types:
+
+- `int`: whole numbers, usually about -2 billion to 2 billion.
+- `long long`: bigger whole numbers, useful for sums and products.
+- `double`: decimal numbers.
+- `char`: one character, written with single quotes.
+- `bool`: `true` or `false`.
+- `string`: text, written with double quotes.
+
+```cpp
+int x;      // declared, but not initialized
+x = 10;    // assigned later
+
+int y = 20; // declared and initialized
+```
+
+Local variables are not automatically zero. Initialize them before use.
+
+## Operators
+Operators combine or compare values.
+
+```cpp
+int a = 7;
+int b = 3;
+
+cout << a + b << '\n'; // 10
+cout << a - b << '\n'; // 4
+cout << a * b << '\n'; // 21
+cout << a / b << '\n'; // 2, integer division
+cout << a % b << '\n'; // 1, remainder
+```
+
+Comparison operators:
+
+```cpp
+a == b  // equal
+a != b  // not equal
+a < b
+a <= b
+a > b
+a >= b
+```
+
+Logical operators:
+
+```cpp
+if (age >= 13 && age <= 19) cout << "teen\n";
+if (score < 0 || score > 100) cout << "invalid\n";
+if (!(x == 0)) cout << "not zero\n";
+```
+
+## If, else, and conditions
+Use `if` when code should run only in some cases.
+
+```cpp
+int score = 75;
+
+if (score >= 80) {
+    cout << "pass\n";
+} else if (score >= 50) {
+    cout << "retry\n";
+} else {
+    cout << "fail\n";
+}
+```
+
+Conditions should usually be explicit. Avoid clever one-line logic until the basic form feels easy.
+
+## Loops
+Loops repeat code.
+
+Use `for` when you know how many times to repeat:
+
+```cpp
+for (int i = 0; i < 5; i++) {
+    cout << i << '\n';
+}
+```
+
+Use `while` when the stopping point depends on a condition:
+
+```cpp
+int x = 10;
+while (x > 0) {
+    cout << x << '\n';
+    x--;
+}
+```
+
+Use range-for to read every value in a container:
+
+```cpp
+vector<int> a = {2, 4, 6};
+for (int x : a) {
+    cout << x << '\n';
+}
+```
+
+`break` stops a loop. `continue` skips to the next loop step.
+
+## Functions
+A function is a named block of reusable code. Give it inputs as parameters and return a result.
+
+```cpp
+int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int answer = add(2, 3);
+    cout << answer << '\n';
+}
+```
+
+Use `void` when a function returns nothing.
+
+```cpp
+void printLine() {
+    cout << "-----\n";
+}
+```
+
+Use `const` reference when passing a large object that the function should not change.
+
+```cpp
+int sumVector(const vector<int>& values) {
+    int total = 0;
+    for (int x : values) total += x;
+    return total;
+}
+```
+
 ## I/O
 Use fast I/O for almost every TOI task. Read with `cin`, print with `'\n'`, and avoid `endl` unless you really need a flush.
 

@@ -1,6 +1,6 @@
 # TOIZero
 
-TOIZero is a single-user local practice app for Thailand Olympiad in Informatics preparation. It lets you browse TOI Zero problems, read cached PDFs, write C or C++ in the browser, run code locally, and submit to the official TOI grader when your `settings.json` has a valid TOI session.
+TOIZero is a single-user local practice app for Thailand Olympiad in Informatics preparation. It lets you browse TOI Zero problems, read cached PDFs, write C, C++, or Python in the browser, run code locally, and submit to the official TOI grader when your `settings.json` has a valid TOI session.
 
 The visual system follows [info/DESIGN.md](info/DESIGN.md). The main implementation history lives in [docs/superpowers/plans/](docs/superpowers/plans/).
 
@@ -100,8 +100,18 @@ http://localhost:5173
 - **Download one PDF:** open a TOI problem and click `Download PDF`.
 - **Download missing PDFs:** click `Sync PDFs` on the path page.
 - **Sync scores:** open the qualification chip and click `Sync from TOI`.
-- **Run code locally:** write C/C++, then click `Run samples` or `Run all`.
+- **Run code locally:** write C, C++, or Python, then click `Run samples` or `Run all`.
 - **Submit to TOI:** click `Submit to TOI`. This sends a real submission to the official grader.
+
+## Cheat Sheets
+
+The in-app cheat sheets start from language fundamentals before moving into competitive-programming patterns:
+
+- **C:** program shape, comments, variables, data types, operators, branches, loops, functions, arrays, strings, and pointers.
+- **C++:** program shape, variables, types, operators, branches, loops, functions, references, vectors, strings, and containers.
+- **Python:** statements, indentation, variables, types, operators, branches, loops, functions, lists, dictionaries, sets, and strings.
+
+Open `http://localhost:5173/cheatsheet` when you want a beginner-friendly language reference.
 
 ## Checks
 

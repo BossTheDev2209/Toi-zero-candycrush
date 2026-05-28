@@ -1,5 +1,176 @@
 # Python cheat sheet
 
+## Program shape
+A Python program is a list of statements. Python runs from top to bottom.
+
+```python
+print("Hello, world!")
+```
+
+Python uses indentation to group code blocks. Use spaces consistently.
+
+```python
+if True:
+    print("inside the block")
+print("outside the block")
+```
+
+Unlike C and C++, Python does not require semicolons or a `main` function for small scripts.
+
+## Comments
+Comments explain code to humans. Python ignores them.
+
+```python
+# One-line comment
+```
+
+Triple-quoted strings can span multiple lines, but they are strings, not normal comments.
+
+```python
+"""
+This is often used as a long note or docstring.
+"""
+```
+
+## Variables and data types
+A variable name points to a value. Python figures out the type from the value.
+
+```python
+age = 16
+price = 19.95
+name = "Somchai"
+passed = True
+```
+
+Common types:
+
+- `int`: whole numbers, with no fixed overflow limit.
+- `float`: decimal numbers.
+- `str`: text.
+- `bool`: `True` or `False`.
+- `list`: ordered, changeable sequence.
+- `tuple`: ordered, usually fixed sequence.
+- `dict`: key-value table.
+- `set`: unique values.
+
+Check a value's type with `type`.
+
+```python
+x = 10
+print(type(x))  # <class 'int'>
+```
+
+Use clear names. `total_score` is better than `ts` when learning.
+
+## Operators
+Operators combine or compare values.
+
+```python
+a = 7
+b = 3
+
+print(a + b)  # 10
+print(a - b)  # 4
+print(a * b)  # 21
+print(a / b)  # 2.333...
+print(a // b) # 2, integer division
+print(a % b)  # 1, remainder
+print(a ** b) # 343, power
+```
+
+Comparison operators:
+
+```python
+a == b  # equal
+a != b  # not equal
+a < b
+a <= b
+a > b
+a >= b
+```
+
+Logical operators:
+
+```python
+if age >= 13 and age <= 19:
+    print("teen")
+
+if score < 0 or score > 100:
+    print("invalid")
+
+if not x == 0:
+    print("not zero")
+```
+
+## If, elif, and else
+Use `if` when code should run only in some cases.
+
+```python
+score = 75
+
+if score >= 80:
+    print("pass")
+elif score >= 50:
+    print("retry")
+else:
+    print("fail")
+```
+
+Python uses `elif`, not `else if`.
+
+## Loops
+Loops repeat code.
+
+Use `for` to loop over a range or container:
+
+```python
+for i in range(5):
+    print(i)
+
+for x in [2, 4, 6]:
+    print(x)
+```
+
+Use `while` when the stopping point depends on a condition:
+
+```python
+x = 10
+while x > 0:
+    print(x)
+    x -= 1
+```
+
+`break` stops a loop. `continue` skips to the next loop step.
+
+```python
+for i in range(1, 11):
+    if i == 5:
+        continue
+    if i == 8:
+        break
+    print(i)
+```
+
+## Functions
+A function is a named block of reusable code. Give it inputs as parameters and return a result.
+
+```python
+def add(a, b):
+    return a + b
+
+answer = add(2, 3)
+print(answer)
+```
+
+Functions can return nothing. In that case they return `None`.
+
+```python
+def print_line():
+    print("-----")
+```
+
+Use functions to make your solution easier to test.
+
 ## I/O
 Use `sys.stdin.buffer` for large input. Split all bytes when the format is simple.
 
