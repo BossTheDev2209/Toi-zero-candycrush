@@ -8,6 +8,7 @@ import { DocsPage } from "./pages/DocsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { CheatSheetPage } from "./pages/CheatSheetPage";
 import { CommandPalette } from "./components/CommandPalette";
+import { LoginGate } from "./components/LoginGate";
 import { useHotkey } from "./lib/hotkey";
 
 export default function App() {
@@ -17,7 +18,7 @@ export default function App() {
   useHotkey("ctrl+k", () => setPaletteOpen((v) => !v));
 
   return (
-    <>
+    <LoginGate>
       <div className="min-h-screen pb-24">
         <NavPill onOpenPalette={() => setPaletteOpen(true)} />
         <Routes>
@@ -40,6 +41,6 @@ export default function App() {
         )}
       </div>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-    </>
+    </LoginGate>
   );
 }

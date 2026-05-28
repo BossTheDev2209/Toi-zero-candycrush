@@ -1,4 +1,5 @@
 import type { ProblemNodeStatus } from "../lib/status";
+import { scoreChipTier } from "../lib/status";
 
 interface Props {
   title: string;
@@ -64,20 +65,21 @@ export function ProblemNode({
               ไม่นับ
             </span>
           )}
-          {(status === "eighty" || status === "perfect") && (
-            <span
-              className={`absolute grid place-items-center rounded-full border border-[var(--color-success)] ${
-                status === "perfect"
-                  ? "h-9 w-9 bg-[var(--color-success)] text-[var(--color-canvas)]"
-                  : "h-7 w-7 bg-[var(--color-white)] text-[var(--color-success)]"
-              }`}
-              style={{ right: -3, bottom: -3 }}
-            >
-              <svg width={status === "perfect" ? 18 : 14} height={status === "perfect" ? 18 : 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-            </span>
-          )}
+          {status !== "locked" && (() => {
+            // Replaces the previous binary check icon with the actual TOI score.
+            // The chip is the score signal — tier-tinted so the eye reads
+            // "trying / closing / passing / perfect" without parsing the number.
+            const tier = scoreChipTier(score);
+            if (!tier) return null;
+            return (
+              <span
+                className={`score-chip score-chip-${tier}`}
+                aria-label={`TOI score ${score} out of 100`}
+              >
+                {score}
+              </span>
+            );
+          })()}
         </span>
       </button>
       <div className="problem-node-tip absolute left-1/2 top-full z-10 w-44 -translate-x-1/2 pt-2 text-center text-[11px] font-medium text-[var(--color-graphite)] opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">

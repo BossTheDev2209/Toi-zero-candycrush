@@ -2,13 +2,16 @@ import type { AppConfig } from "../config";
 import { askOllama } from "./ollama";
 import { askAnthropic } from "./anthropic";
 import { askOpenAi } from "./openai";
+import { askClaudeCli } from "./claudeCli";
 
-export type ProviderName = "anthropic" | "openai" | "ollama";
+export type ProviderName = "anthropic" | "openai" | "ollama" | "claude-cli";
 
 export interface AiAskInput {
   systemPrompt: string;
   messages: { role: "user" | "assistant"; content: string }[];
   maxTokens: number;
+  /** When aborted, the provider should stop generation ASAP and return whatever partial text it has. */
+  signal?: AbortSignal;
 }
 
 export interface AiAskResult {
@@ -44,6 +47,7 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
         systemPrompt: input.systemPrompt,
         messages: input.messages,
         maxTokens: input.maxTokens ?? maxTokens,
+        signal: input.signal,
       }),
     };
   }
@@ -58,6 +62,20 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
         systemPrompt: input.systemPrompt,
         messages: input.messages,
         maxTokens: input.maxTokens ?? maxTokens,
+        signal: input.signal,
+      }),
+    };
+  }
+  if (provider === "claude-cli") {
+    const model = ai.claudeCliModel || "sonnet";
+    return {
+      name: "claude-cli",
+      model,
+      ask: (input) => askClaudeCli({
+        model,
+        systemPrompt: input.systemPrompt,
+        messages: input.messages,
+        signal: input.signal,
       }),
     };
   }
@@ -71,6 +89,8 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
       systemPrompt: input.systemPrompt,
       messages: input.messages,
       maxTokens: input.maxTokens ?? maxTokens,
+      signal: input.signal,
+      keepAlive: ai.ollamaKeepAlive ?? "0",
     }),
   };
 }

@@ -31,6 +31,12 @@ export function aiMessageRepo(db: Database) {
     `SELECT * FROM ai_message WHERE problem_id = ? ORDER BY created_at, id`
   );
   const clearStmt = db.prepare(`DELETE FROM ai_message WHERE problem_id = ?`);
+  const getByIdStmt = db.prepare(`SELECT * FROM ai_message WHERE id = ?`);
+  const updateContentStmt = db.prepare(`UPDATE ai_message SET content = ? WHERE id = ?`);
+  // Delete every later message in the same conversation. Used by edit-and-resend:
+  // editing a user message invalidates the assistant reply that followed (and any
+  // subsequent turns built on that reply), so we drop everything after the pivot.
+  const deleteAfterStmt = db.prepare(`DELETE FROM ai_message WHERE problem_id = ? AND id > ?`);
 
   return {
     create(input: CreateAiMessageInput): number {
@@ -45,6 +51,18 @@ export function aiMessageRepo(db: Database) {
     },
     clearForProblem(problemId: number): number {
       const info = clearStmt.run(problemId);
+      return info.changes;
+    },
+    getById(id: number): AiMessageRow | null {
+      const r = getByIdStmt.get(id) as AiMessageRow | undefined;
+      return r ?? null;
+    },
+    updateContent(id: number, content: string): boolean {
+      const info = updateContentStmt.run(content, id);
+      return info.changes > 0;
+    },
+    deleteAfter(problemId: number, afterId: number): number {
+      const info = deleteAfterStmt.run(problemId, afterId);
       return info.changes;
     },
   };

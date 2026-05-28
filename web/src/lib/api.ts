@@ -50,16 +50,28 @@ export const api = {
     fetch("/api/toi/sync-counts", { method: "POST" }).then(
       json<{ ok: true; seen: number; updated: number; notFoundInDb: string[]; uncounted: number } | { ok: false; error: string }>,
     ),
-  getAiStatus: () => fetch("/api/ai/status").then(json<{ provider: string; model: string; hasKey: boolean }>),
+  getAiStatus: () => fetch("/api/ai/status").then(json<{
+    provider: string;
+    model: string;
+    hasKey: boolean;
+    hasUserProfile?: boolean;
+    hasTutorStyle?: boolean;
+  }>),
+  getAiPersonalization: () =>
+    fetch("/api/ai/personalization").then(json<{ userProfile: string; tutorStyle: string }>),
   saveAiSettings: (body: {
-    provider: "anthropic" | "openai" | "ollama";
+    provider: "anthropic" | "openai" | "ollama" | "claude-cli";
     anthropicApiKey?: string;
     anthropicModel?: string;
     openaiApiKey?: string;
     openaiModel?: string;
     ollamaUrl?: string;
     ollamaModel?: string;
+    ollamaKeepAlive?: string;
+    claudeCliModel?: string;
     maxTokens?: number;
+    userProfile?: string;
+    tutorStyle?: string;
   }) =>
     fetch("/api/ai/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; provider: string }>),
   getAiHistory: (problemId: number) =>
@@ -67,5 +79,15 @@ export const api = {
   clearAiHistory: (problemId: number) =>
     fetch(`/api/ai/history/${problemId}`, { method: "DELETE" }).then(json<{ deleted: number }>),
   askAi: (body: { problemId: number; message: string; forceFullSolution?: boolean }) =>
-    fetch("/api/ai/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; text?: string; provider?: string; model?: string; tokensIn?: number; tokensOut?: number; error?: string }>),
+    fetch("/api/ai/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; cancelled?: boolean; text?: string; provider?: string; model?: string; tokensIn?: number; tokensOut?: number; error?: string }>),
+  cancelAi: (problemId: number) =>
+    fetch(`/api/ai/cancel/${problemId}`, { method: "POST" }).then(json<{ cancelled: boolean }>),
+  editAiMessage: (id: number, content: string) =>
+    fetch(`/api/ai/messages/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content }),
+    }).then(json<{ ok: boolean; deleted?: number; error?: string; messages?: { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; created_at: string }[] }>),
+  regenerateAi: (body: { problemId: number; forceFullSolution?: boolean }) =>
+    fetch("/api/ai/regenerate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; cancelled?: boolean; text?: string; provider?: string; model?: string; tokensIn?: number; tokensOut?: number; error?: string }>),
 };

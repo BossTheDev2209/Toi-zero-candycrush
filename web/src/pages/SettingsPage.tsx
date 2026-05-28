@@ -141,7 +141,7 @@ export function SettingsPage() {
   );
 }
 
-type Provider = "anthropic" | "openai" | "ollama";
+type Provider = "anthropic" | "openai" | "ollama" | "claude-cli";
 
 function AiSettings() {
   const [provider, setProvider] = useState<Provider>("ollama");
@@ -149,9 +149,13 @@ function AiSettings() {
   const [openaiKey, setOpenaiKey] = useState("");
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
   const [ollamaModel, setOllamaModel] = useState("qwen2.5-coder:7b");
+  const [ollamaKeepAlive, setOllamaKeepAlive] = useState("0");
   const [anthropicModel, setAnthropicModel] = useState("claude-sonnet-4-5");
   const [openaiModel, setOpenaiModel] = useState("gpt-4o-mini");
+  const [claudeCliModel, setClaudeCliModel] = useState("sonnet");
   const [maxTokens, setMaxTokens] = useState(1024);
+  const [userProfile, setUserProfile] = useState("");
+  const [tutorStyle, setTutorStyle] = useState("");
   const [status, setStatus] = useState<{ provider: string; model: string; hasKey: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -159,7 +163,14 @@ function AiSettings() {
   async function loadStatus() {
     try { setStatus(await api.getAiStatus()); } catch (e: any) { setErr(e?.message ?? String(e)); }
   }
-  useEffect(() => { void loadStatus(); }, []);
+  async function loadPersonalization() {
+    try {
+      const p = await api.getAiPersonalization();
+      setUserProfile(p.userProfile);
+      setTutorStyle(p.tutorStyle);
+    } catch (e: any) { setErr(e?.message ?? String(e)); }
+  }
+  useEffect(() => { void loadStatus(); void loadPersonalization(); }, []);
 
   async function save() {
     setMsg(null); setErr(null);
@@ -172,7 +183,11 @@ function AiSettings() {
         openaiModel,
         ollamaUrl,
         ollamaModel,
+        ollamaKeepAlive,
+        claudeCliModel,
         maxTokens,
+        userProfile,
+        tutorStyle,
       });
       setMsg("Saved.");
       setAnthropicKey(""); setOpenaiKey("");
@@ -181,6 +196,7 @@ function AiSettings() {
   }
 
   const inputCls = "w-full rounded-2xl border border-[var(--color-dust)] bg-white px-4 py-2.5 text-[var(--color-ink)] placeholder:text-[var(--color-slate)] focus:outline-none focus:border-[var(--color-ink)]";
+  const textareaCls = "w-full rounded-2xl border border-[var(--color-dust)] bg-white px-4 py-2.5 text-[var(--color-ink)] placeholder:text-[var(--color-slate)] focus:outline-none focus:border-[var(--color-ink)] font-[450] leading-relaxed";
   const labelCls = "block text-[12px] font-bold tracking-[0.04em] uppercase text-[var(--color-slate)] mb-1.5";
 
   return (
@@ -189,8 +205,9 @@ function AiSettings() {
         <div className={labelCls}>Provider</div>
         <select className={inputCls} value={provider} onChange={(e) => setProvider(e.target.value as Provider)}>
           <option value="ollama">Ollama (local, free)</option>
-          <option value="anthropic">Anthropic Claude</option>
-          <option value="openai">OpenAI</option>
+          <option value="claude-cli">Claude Code CLI (your Max subscription)</option>
+          <option value="anthropic">Anthropic Claude (API key)</option>
+          <option value="openai">OpenAI (API key)</option>
         </select>
       </label>
 
@@ -208,6 +225,18 @@ function AiSettings() {
             <input type="password" className={inputCls} value={openaiKey} onChange={(e) => setOpenaiKey(e.target.value)} placeholder={status?.hasKey ? "leave blank to keep existing" : "sk-..."} /></label>
           <label className="block"><div className={labelCls}>Model</div>
             <input className={inputCls} value={openaiModel} onChange={(e) => setOpenaiModel(e.target.value)} /></label>
+          <p className="text-xs text-[var(--color-slate)]">
+            Note: ChatGPT Plus does not grant API access. You need a separate API key billed per token.
+          </p>
+        </>
+      )}
+      {provider === "claude-cli" && (
+        <>
+          <label className="block"><div className={labelCls}>Model (claude --model)</div>
+            <input className={inputCls} value={claudeCliModel} onChange={(e) => setClaudeCliModel(e.target.value)} placeholder="sonnet · opus · haiku · or full id" /></label>
+          <p className="text-xs text-[var(--color-slate)]">
+            Spawns <code className="font-mono text-[11px]">claude --print</code> per request. Uses your Claude Max subscription quota — no API billing. Requires the <code className="font-mono text-[11px]">claude</code> CLI on PATH and a current login.
+          </p>
         </>
       )}
       {provider === "ollama" && (
@@ -216,11 +245,50 @@ function AiSettings() {
             <input className={inputCls} value={ollamaUrl} onChange={(e) => setOllamaUrl(e.target.value)} /></label>
           <label className="block"><div className={labelCls}>Model</div>
             <input className={inputCls} value={ollamaModel} onChange={(e) => setOllamaModel(e.target.value)} /></label>
+          <label className="block"><div className={labelCls}>Keep model in RAM</div>
+            <input className={inputCls} value={ollamaKeepAlive} onChange={(e) => setOllamaKeepAlive(e.target.value)} placeholder="0" />
+            <p className="mt-1.5 text-xs text-[var(--color-slate)]">
+              <code className="font-mono text-[11px]">0</code> = unload right after each reply (frees RAM, slower next request).{" "}
+              <code className="font-mono text-[11px]">5m</code> = keep loaded 5 min idle.{" "}
+              <code className="font-mono text-[11px]">-1</code> = forever.
+            </p>
+          </label>
         </>
       )}
 
       <label className="block"><div className={labelCls}>Max tokens per reply</div>
         <input type="number" className={inputCls} value={maxTokens} onChange={(e) => setMaxTokens(Number(e.target.value))} /></label>
+
+      <div className="border-t border-[var(--color-dust)] pt-5 mt-5">
+        <div className="mb-3">
+          <div className="text-[13px] font-medium text-[var(--color-ink)]">Personalize the tutor</div>
+          <p className="text-xs text-[var(--color-slate)] mt-1">
+            Free-form, injected into every prompt. Helps the AI fit you — your level, your language mix, how much hand-holding you want.
+          </p>
+        </div>
+
+        <label className="block mb-3">
+          <div className={labelCls}>About you</div>
+          <textarea
+            className={textareaCls}
+            rows={4}
+            value={userProfile}
+            onChange={(e) => setUserProfile(e.target.value)}
+            placeholder="e.g. M.5 student, comfortable with loops/arrays/strings, learning DP. Weak on graphs. Read English fine, prefer Thai for conceptual hints."
+          />
+        </label>
+
+        <label className="block">
+          <div className={labelCls}>Style preferences</div>
+          <textarea
+            className={textareaCls}
+            rows={4}
+            value={tutorStyle}
+            onChange={(e) => setTutorStyle(e.target.value)}
+            placeholder="e.g. Be terse. Ask one Socratic question at a time. Don't dump full solutions. Use Thai for explanations and English for code/math terms."
+          />
+        </label>
+      </div>
 
       <div className="pt-2">
         <PillButton onClick={save}>Save AI settings</PillButton>

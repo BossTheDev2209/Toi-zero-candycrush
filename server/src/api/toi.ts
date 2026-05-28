@@ -10,6 +10,7 @@ import { submitToToi } from "../toi/submit";
 import { fetchBestScore } from "../toi/scrapeScores";
 import { fetchCounts } from "../toi/scrapeCounts";
 import { loginToToi } from "../toi/login";
+import { refreshXsrfFromContest } from "../toi/refreshXsrf";
 
 const SubmitZ = z.object({
   language: z.enum(["c", "cpp", "py"]),
@@ -99,6 +100,35 @@ export function toiRouter(db: Database, cfg: AppConfig) {
   }
 
   /**
+   * Cheap recovery for submits that fail with stale _xsrf (HTTP 403 from CMS).
+   * GETs the contest landing with the current login cookie, picks up the fresh
+   * `_xsrf` from Set-Cookie, persists if changed. Falls back to a full re-login
+   * only if the xsrf refresh itself fails — that's when the login cookie is also
+   * expired and we need to roll the whole session.
+   */
+  async function recoverFromXsrf403(): Promise<{ ok: boolean; refreshed: "xsrf" | "login" | null; error?: string }> {
+    const xsrfRefresh = await refreshXsrfFromContest({
+      baseUrl: cfg.toi.baseUrl,
+      cookie: cfg.toi.cookie,
+      oldXsrf: cfg.toi.xsrf,
+      extraHeaders: cfg.toi.extraHeaders,
+    });
+    if (xsrfRefresh.ok) {
+      if (xsrfRefresh.changed) persistToiUpdate(cfg, { xsrf: xsrfRefresh.xsrf });
+      return { ok: true, refreshed: xsrfRefresh.changed ? "xsrf" : null };
+    }
+    const reLogin = await refreshCookieIfPossible();
+    if (reLogin.ok) return { ok: true, refreshed: "login" };
+    return { ok: false, refreshed: null, error: reLogin.error ?? xsrfRefresh.error };
+  }
+
+  /** A submit error string is "auth-flavored" (stale xsrf, expired cookie, login redirect) if any of these substrings show up. */
+  function isAuthError(err: string | null | undefined): boolean {
+    if (!err) return false;
+    return /xsrf|cookie|login|HTTP 403/i.test(err);
+  }
+
+  /**
    * Public auth status — never leaks the password itself. Returns whether credentials
    * are configured and when the last successful login was.
    */
@@ -142,7 +172,7 @@ export function toiRouter(db: Database, cfg: AppConfig) {
       }, 400);
     }
 
-    const result = await submitToToi({
+    const trySubmit = () => submitToToi({
       baseUrl: cfg.toi.baseUrl,
       cookie: cfg.toi.cookie,
       xsrf: cfg.toi.xsrf,
@@ -151,6 +181,18 @@ export function toiRouter(db: Database, cfg: AppConfig) {
       language: body.language,
       code: body.code,
     });
+
+    let result = await trySubmit();
+    let recovery: string | null = null;
+    // Auto-recover on stale-xsrf / cookie-expired (HTTP 403, login redirect, etc.)
+    // Single retry — if the second attempt still fails, return the error to the user.
+    if (isAuthError(result.error)) {
+      const refresh = await recoverFromXsrf403();
+      if (refresh.ok) {
+        recovery = refresh.refreshed; // "xsrf" | "login" | null
+        result = await trySubmit();
+      }
+    }
 
     subRepo.create({
       problemId: id,
@@ -161,7 +203,7 @@ export function toiRouter(db: Database, cfg: AppConfig) {
       error: result.error,
     });
 
-    return c.json(result);
+    return c.json({ ...result, recovery });
   });
 
   r.post("/counts-bulk", async (c) => {
@@ -214,11 +256,17 @@ export function toiRouter(db: Database, cfg: AppConfig) {
     });
   });
 
-  r.post("/sync-scores", (c) => {
+  r.post("/sync-scores", async (c) => {
     if (syncProgress.running) return c.json(syncProgress, 409);
+    if (cfg.toi.baseUrl && (!cfg.toi.cookie || !cfg.toi.xsrf) && cfg.toi.username && cfg.toi.password) {
+      const refresh = await refreshCookieIfPossible();
+      if (!refresh.ok) {
+        return c.json({ error: refresh.error ?? "TOI login failed. Check username/password in settings." }, 400);
+      }
+    }
     if (!cfg.toi.baseUrl || !cfg.toi.cookie || !cfg.toi.xsrf) {
       return c.json({
-        error: "TOI not configured. Set toi.baseUrl, toi.cookie, toi.xsrf in settings.json.",
+        error: "TOI not configured. Save TOI credentials in Settings, or set toi.baseUrl, toi.cookie, toi.xsrf in settings.json.",
       }, 400);
     }
 
@@ -311,10 +359,10 @@ export function toiRouter(db: Database, cfg: AppConfig) {
         code: t.code,
       });
       let result = await trySubmit();
-      if (!result.error || !/login|cookie|xsrf/i.test(result.error)) {
-        // proceed
-      } else {
-        const refresh = await refreshCookieIfPossible();
+      if (isAuthError(result.error)) {
+        // Prefer the cheap xsrf refresh first; recoverFromXsrf403 falls back to a
+        // full re-login internally if the xsrf refresh fails. Single retry.
+        const refresh = await recoverFromXsrf403();
         if (refresh.ok) result = await trySubmit();
       }
       subRepo.create({

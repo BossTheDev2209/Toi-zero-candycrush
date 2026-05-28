@@ -8,6 +8,7 @@ import { ProblemNode } from "../components/ProblemNode";
 import { ZigzagPath } from "../components/ZigzagPath";
 import { SectionBand } from "../components/SectionBand";
 import { QualificationChip } from "../components/QualificationChip";
+import { SyncFromToiButton } from "../components/SyncFromToiButton";
 import { PillButton } from "../components/PillButton";
 import { EyebrowLabel } from "../components/EyebrowLabel";
 
@@ -139,7 +140,14 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
 
   return (
     <div className="mx-auto max-w-[1180px] px-6 pt-32">
-      <QualificationChip qualification={qualification} onSynced={load} />
+      {/* Top-right cluster: qualification pill on top, sync action below.
+          Lifted out of the chip itself so the sync CTA isn't gated behind a
+          hover/click. The vertical gap is intentionally tight (12px) so they
+          read as a cluster, not two unrelated controls. */}
+      <div className="fixed right-6 top-[88px] z-30 flex flex-col items-end gap-3">
+        <QualificationChip qualification={qualification} />
+        <SyncFromToiButton onSynced={load} />
+      </div>
 
       <div className="mx-auto mb-8 max-w-[720px]">
         <div className="mb-4"><EyebrowLabel>Library</EyebrowLabel></div>

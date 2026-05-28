@@ -24,14 +24,30 @@ export interface AppConfig {
     submitUrl?: string;
   };
   ai: {
-    provider: "anthropic" | "openai" | "ollama";
+    provider: "anthropic" | "openai" | "ollama" | "claude-cli";
     anthropicApiKey?: string;
     anthropicModel?: string;
     openaiApiKey?: string;
     openaiModel?: string;
     ollamaUrl?: string;
     ollamaModel?: string;
+    /**
+     * Ollama keep_alive value passed with every /api/chat request. Controls how
+     * long the model stays loaded in RAM after a reply completes.
+     *
+     * Accepts Ollama's formats: "0" / 0 → unload immediately (frees RAM, slower
+     * next request), "5m" → 5-minute idle, "-1" → keep loaded forever.
+     * Default in this project is "0" so the model doesn't squat on RAM after AI
+     * Help replies, which was a real complaint on a 16 GB box.
+     */
+    ollamaKeepAlive?: string;
+    /** Model name passed to `claude --print --model <m>`. e.g. "sonnet", "opus", "claude-sonnet-4-5". */
+    claudeCliModel?: string;
     maxTokens?: number;
+    /** Free-form student bio. Injected into the system prompt so the tutor adapts. */
+    userProfile?: string;
+    /** Free-form style preferences (language mix, hint depth, etc). Injected verbatim. */
+    tutorStyle?: string;
   };
   /** @internal — populated by loadConfig, used by writers. Not present in JSON. */
   _root?: string;

@@ -52,6 +52,32 @@ describe("buildSystemPrompt", () => {
     expect(re).toContain("Segmentation fault");
   });
 
+  test("injects userProfile and tutorStyle verbatim when provided", () => {
+    const prompt = buildSystemPrompt({
+      language: "cpp", slug: "A1-001", title: "x", statementMd: "",
+      code: "", verdict: null, runtimeMs: null, diff: null, stderr: null,
+      forceFullSolution: false,
+      userProfile: "M.5 student, weak on graphs, comfortable with arrays.",
+      tutorStyle: "Be terse. Ask one Socratic question. Mix Thai + English.",
+    });
+    expect(prompt).toContain("About the student");
+    expect(prompt).toContain("M.5 student, weak on graphs");
+    expect(prompt).toContain("Style preferences");
+    expect(prompt).toContain("Ask one Socratic question");
+  });
+
+  test("omits personalization sections when fields are empty or whitespace-only", () => {
+    const prompt = buildSystemPrompt({
+      language: "cpp", slug: "A1-001", title: "x", statementMd: "",
+      code: "", verdict: null, runtimeMs: null, diff: null, stderr: null,
+      forceFullSolution: false,
+      userProfile: "   ",
+      tutorStyle: "",
+    });
+    expect(prompt).not.toContain("About the student");
+    expect(prompt).not.toContain("Style preferences");
+  });
+
   test("truncates statement excerpts longer than 2KB", () => {
     const long = "x".repeat(5000);
     const prompt = buildSystemPrompt({

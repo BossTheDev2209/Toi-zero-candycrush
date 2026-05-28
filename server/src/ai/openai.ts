@@ -6,6 +6,7 @@ export interface AskOpenAiInput {
   systemPrompt: string;
   messages: { role: "user" | "assistant"; content: string }[];
   maxTokens: number;
+  signal?: AbortSignal;
 }
 
 export async function askOpenAi(input: AskOpenAiInput): Promise<AiAskResult> {
@@ -25,6 +26,7 @@ export async function askOpenAi(input: AskOpenAiInput): Promise<AiAskResult> {
           ...input.messages.map((m) => ({ role: m.role, content: m.content })),
         ],
       }),
+      signal: input.signal,
     });
     if (!res.ok) {
       const text = await res.text();
@@ -41,6 +43,9 @@ export async function askOpenAi(input: AskOpenAiInput): Promise<AiAskResult> {
       tokensOut: data.usage?.completion_tokens,
     };
   } catch (e: any) {
+    if (e?.name === "AbortError" || input.signal?.aborted) {
+      return { ok: false, text: "", error: "aborted" };
+    }
     return { ok: false, text: "", error: e?.message ?? String(e) };
   }
 }

@@ -6,6 +6,7 @@ export interface AskAnthropicInput {
   systemPrompt: string;
   messages: { role: "user" | "assistant"; content: string }[];
   maxTokens: number;
+  signal?: AbortSignal;
 }
 
 export async function askAnthropic(input: AskAnthropicInput): Promise<AiAskResult> {
@@ -24,6 +25,7 @@ export async function askAnthropic(input: AskAnthropicInput): Promise<AiAskResul
         system: input.systemPrompt,
         messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
       }),
+      signal: input.signal,
     });
     if (!res.ok) {
       const text = await res.text();
@@ -41,6 +43,9 @@ export async function askAnthropic(input: AskAnthropicInput): Promise<AiAskResul
       tokensOut: data.usage?.output_tokens,
     };
   } catch (e: any) {
+    if (e?.name === "AbortError" || input.signal?.aborted) {
+      return { ok: false, text: "", error: "aborted" };
+    }
     return { ok: false, text: "", error: e?.message ?? String(e) };
   }
 }

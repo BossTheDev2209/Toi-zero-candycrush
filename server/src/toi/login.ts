@@ -23,7 +23,7 @@ export type LoginResult =
   | { ok: false; error: string };
 
 /** Parse one or more Set-Cookie response headers into a name -> value map. */
-function parseSetCookies(res: Response): Map<string, string> {
+export function parseSetCookies(res: Response): Map<string, string> {
   const out = new Map<string, string>();
   // Bun's Response.headers.getSetCookie() returns an array in 1.3+.
   const raw =

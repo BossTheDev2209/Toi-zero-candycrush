@@ -3,6 +3,24 @@ import { problemSection } from "./path-geometry";
 
 export type ProblemNodeStatus = "unsolved" | "attempted" | "eighty" | "perfect" | "locked";
 
+/**
+ * Score-chip tier shown on each path node. Four steps so the eye can read
+ * progress at a glance without reading the number:
+ *  - low  (1-49)    : tried, far from passing — slate on canvas
+ *  - warn (50-79)   : closing in — warning amber
+ *  - pass (80-99)   : qualifies toward 20/20 — success outline
+ *  - perfect (100)  : full credit — success-filled, cream text
+ * Score 0 returns null so unsolved orbs stay quiet.
+ */
+export type ScoreChipTier = "low" | "warn" | "pass" | "perfect";
+export function scoreChipTier(score: number): ScoreChipTier | null {
+  if (score <= 0) return null;
+  if (score >= 100) return "perfect";
+  if (score >= 80) return "pass";
+  if (score >= 50) return "warn";
+  return "low";
+}
+
 export function qualificationFromProblems(problems: Problem[]): Qualification {
   const a1Count = problems.filter((p) => problemSection(p.category) === "A1" && p.toi_best_score >= 80 && p.toi_counts === 1).length;
   const a2a3Count = problems.filter((p) => {

@@ -332,6 +332,46 @@ describe("aiMessageRepo", () => {
     expect(msgs[1]!.tokens_out).toBe(30);
   });
 
+  test("updateContent edits a single message in place", () => {
+    const db = openDb(":memory:");
+    const pRepo = problemRepo(db);
+    const id = pRepo.create({
+      slug: "A1-003", title: "x", statementMd: "", inputMd: "", outputMd: "",
+      category: "A1", timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [], extraTests: [],
+    });
+    const aRepo = aiMessageRepo(db);
+    const mid = aRepo.create({ problemId: id, role: "user", content: "what's the error?", provider: null, model: null, tokensIn: null, tokensOut: null });
+    expect(aRepo.updateContent(mid, "what's the bug?")).toBe(true);
+    const fetched = aRepo.getById(mid);
+    expect(fetched!.content).toBe("what's the bug?");
+  });
+
+  test("deleteAfter drops every message later than the pivot in the same problem", () => {
+    // The edit-and-resend flow relies on this: editing a mid-conversation user
+    // message must invalidate every reply built on the old content, so we drop
+    // them and let regenerate produce a fresh tail.
+    const db = openDb(":memory:");
+    const pRepo = problemRepo(db);
+    const id = pRepo.create({
+      slug: "A1-004", title: "x", statementMd: "", inputMd: "", outputMd: "",
+      category: "A1", timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [], extraTests: [],
+    });
+    const aRepo = aiMessageRepo(db);
+    const u1 = aRepo.create({ problemId: id, role: "user", content: "first ask", provider: null, model: null, tokensIn: null, tokensOut: null });
+    aRepo.create({ problemId: id, role: "assistant", content: "first reply", provider: "x", model: "y", tokensIn: 1, tokensOut: 1 });
+    aRepo.create({ problemId: id, role: "user", content: "follow up", provider: null, model: null, tokensIn: null, tokensOut: null });
+    aRepo.create({ problemId: id, role: "assistant", content: "second reply", provider: "x", model: "y", tokensIn: 1, tokensOut: 1 });
+
+    const dropped = aRepo.deleteAfter(id, u1);
+    expect(dropped).toBe(3);
+    const remaining = aRepo.listForProblem(id);
+    expect(remaining.length).toBe(1);
+    expect(remaining[0]!.id).toBe(u1);
+    expect(remaining[0]!.content).toBe("first ask");
+  });
+
   test("clearForProblem removes all messages and returns count", () => {
     const db = openDb(":memory:");
     const pRepo = problemRepo(db);

@@ -136,6 +136,54 @@ html.dark .bg-white { background-color: var(--color-white) !important; }
   50% { transform: scale(1.045); box-shadow: 0 0 0 10px rgba(243, 115, 56, 0.08); }
 }
 
+/* Syntax-highlighted code fences in AI Help replies.
+ *
+ * Six tokens cover ~all useful coverage for cpp/c/py without going maximalist:
+ * keywords, strings, numbers/literals, comments, type names, builtin functions.
+ * Everything else inherits the surrounding prose text color so the palette stays
+ * tight and consistent with the rest of the Mastercard-derived design system.
+ */
+.hljs               { color: var(--color-ink); background: transparent; }
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag           { color: var(--color-link); font-weight: 600; }
+.hljs-string,
+.hljs-attr,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-symbol        { color: var(--color-success); }
+.hljs-number,
+.hljs-literal,
+.hljs-meta,
+.hljs-meta-keyword  { color: var(--color-graphite); }
+.hljs-comment,
+.hljs-quote         { color: var(--color-slate); font-style: italic; }
+.hljs-type,
+.hljs-class .hljs-title,
+.hljs-title.class_  { color: var(--color-signal); }
+.hljs-title.function_,
+.hljs-function .hljs-title { color: var(--color-ink); font-weight: 600; }
+
+/* AI Help typing indicator — three dots bouncing in sequence while the model generates. */
+@keyframes ai-typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+.ai-typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: var(--color-slate);
+  animation: ai-typing-dot 1.2s var(--motion-smooth) infinite;
+}
+
+.ai-typing-dot:nth-child(2) { animation-delay: 150ms; }
+.ai-typing-dot:nth-child(3) { animation-delay: 300ms; }
+
 .problem-node-orb.is-suggested {
   animation: suggested-pulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
@@ -383,6 +431,62 @@ html.dark select option {
 
 .problem-node-orb.is-uncounted .node-letter {
   color: color-mix(in srgb, var(--node-letter) 60%, transparent);
+}
+
+/* Score chip — pill badge docked at the orb's bottom-right corner.
+ * Tiered by score so the eye reads progress at a glance without parsing digits.
+ * Geometry locked to the system's pill radius (999) + 1px borders, matching
+ * the Mastercard component vocabulary; no new radii introduced. Width is auto
+ * with a min-width so 1, 2, and 3-digit scores never crowd. */
+.score-chip {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  transition: transform 180ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth);
+}
+.problem-node-button:hover .score-chip,
+.problem-node-button:focus-visible .score-chip {
+  transform: translate(1px, 1px) scale(1.04);
+}
+
+.score-chip-low {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-dust);
+  color: var(--color-slate);
+}
+.score-chip-warn {
+  background: color-mix(in srgb, var(--color-warning-soft) 80%, var(--color-canvas));
+  border: 1px solid color-mix(in srgb, var(--color-warning) 80%, transparent);
+  color: var(--color-warning);
+}
+.score-chip-pass {
+  background: var(--color-white);
+  border: 1.5px solid var(--color-success);
+  color: var(--color-success);
+}
+.score-chip-perfect {
+  background: var(--color-success);
+  border: 1.5px solid var(--color-success);
+  color: var(--color-canvas);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-success) 28%, transparent);
+}
+
+/* Uncounted problems dim the chip in step with the orb so the dashed-grayscale
+ * treatment reads as "this won't count toward qualification" consistently. */
+.problem-node-orb.is-uncounted .score-chip {
+  filter: grayscale(0.7) opacity(0.7);
 }
 
 .uncounted-badge {

@@ -9,9 +9,15 @@ export interface SystemPromptContext {
   diff: string | null;
   stderr: string | null;
   forceFullSolution: boolean;
+  /** Free-form student bio from settings. Injected verbatim so the tutor adapts to who they are. */
+  userProfile?: string | null;
+  /** Free-form style preferences (language mix, hint depth, tone). Injected verbatim. */
+  tutorStyle?: string | null;
 }
 
 const MAX_STATEMENT = 2048;
+const MAX_PROFILE = 1024;
+const MAX_STYLE = 1024;
 
 function verdictNote(ctx: SystemPromptContext): string {
   if (!ctx.verdict) return "Latest local run: (none yet)";
@@ -31,7 +37,10 @@ export function buildSystemPrompt(ctx: SystemPromptContext): string {
     ? "The student has explicitly asked you to show the complete solution. Do so, with explanation."
     : "Give SHORT, targeted hints. Use Socratic questions when helpful. Do NOT write the full solution unless explicitly asked.";
 
-  return [
+  const profile = (ctx.userProfile ?? "").trim().slice(0, MAX_PROFILE);
+  const style = (ctx.tutorStyle ?? "").trim().slice(0, MAX_STYLE);
+
+  const lines: string[] = [
     "You are a programming tutor for a Thai high-school student preparing for the",
     "Thailand Olympiad in Informatics (TOI). You are helping them with a competitive",
     "programming problem.",
@@ -39,6 +48,24 @@ export function buildSystemPrompt(ctx: SystemPromptContext): string {
     spoilerLine,
     "If they're close, point at the specific line or algorithm gap. If they're far,",
     "suggest the right algorithm category but make them write the code.",
+  ];
+
+  if (profile) {
+    lines.push(
+      "",
+      "About the student (their own words — adapt your hints to fit):",
+      profile,
+    );
+  }
+  if (style) {
+    lines.push(
+      "",
+      "Style preferences (their own words — follow these):",
+      style,
+    );
+  }
+
+  lines.push(
     "",
     `Language: ${ctx.language}`,
     `Problem: ${ctx.slug} — ${ctx.title}`,
@@ -54,5 +81,7 @@ export function buildSystemPrompt(ctx: SystemPromptContext): string {
     verdictNote(ctx),
     "",
     "Reply in the student's question's language (Thai or English). Be concise.",
-  ].join("\n");
+  );
+
+  return lines.join("\n");
 }
