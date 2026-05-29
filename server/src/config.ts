@@ -44,7 +44,6 @@ export interface AppConfig {
     ollamaKeepAlive?: string;
     /** Model name passed to `claude --print --model <m>`. e.g. "sonnet", "opus", "claude-sonnet-4-5". */
     claudeCliModel?: string;
-    maxTokens?: number;
     /**
      * Whether to ask reason-capable models to emit their chain-of-thought.
      * Drives Ollama's `think` flag. Default true. Turn off to skip reasoning

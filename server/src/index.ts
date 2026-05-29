@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createBunWebSocket } from "hono/bun";
 import { openDb } from "./db/client";
 import { loadConfig } from "./config";
 import { problemsRouter } from "./api/problems";
@@ -25,17 +26,21 @@ mkdirSync(dirname(dbPath), { recursive: true });
 mkdirSync(problemsDir, { recursive: true });
 const db = openDb(dbPath);
 
+// Bun WebSocket bridge — shared between the route (upgradeWebSocket) and the
+// server export (websocket). Powers the interactive terminal in runsRouter.
+const { upgradeWebSocket, websocket } = createBunWebSocket();
+
 const app = new Hono();
 app.use("/api/*", cors({ origin: (o) => o ?? "*", credentials: true }));
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/problems", pdfRouter(db, cfg, { problemsDir }));
 app.route("/api/problems", problemsRouter(db, problemsDir));
 app.route("/api/solutions", solutionsRouter(db));
-app.route("/api/runs", runsRouter(db, cfg));
+app.route("/api/runs", runsRouter(db, cfg, upgradeWebSocket));
 app.route("/api/toi", toiRouter(db, cfg));
 app.route("/api/ai", aiRouter(db, cfg));
 app.route("/api/qualification", qualificationRouter(db));
 
 const port = cfg.apiPort;
 console.log(`TOIZero API listening on http://localhost:${port}`);
-export default { fetch: app.fetch, port };
+export default { fetch: app.fetch, port, websocket };

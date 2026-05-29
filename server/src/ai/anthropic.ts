@@ -6,7 +6,8 @@ export interface AskAnthropicInput {
   model: string;
   systemPrompt: string;
   messages: { role: "user" | "assistant"; content: string }[];
-  maxTokens: number;
+  /** Anthropic requires a cap; defaults to a generous ceiling when omitted. */
+  maxTokens?: number;
   signal?: AbortSignal;
   /** When provided, stream tokens live via SSE and forward each delta. */
   onDelta?: (d: AiStreamDelta) => void;
@@ -26,7 +27,7 @@ export async function askAnthropic(input: AskAnthropicInput): Promise<AiAskResul
       },
       body: JSON.stringify({
         model: input.model,
-        max_tokens: input.maxTokens,
+        max_tokens: input.maxTokens && input.maxTokens > 0 ? input.maxTokens : 8192,
         system: input.systemPrompt,
         stream,
         messages: input.messages.map((m) => ({ role: m.role, content: m.content })),

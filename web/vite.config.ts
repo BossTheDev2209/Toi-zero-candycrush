@@ -7,7 +7,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": "http://localhost:8787",
+      // `ws: true` so the interactive-terminal WebSocket (/api/runs/:id/terminal)
+      // is proxied through to the API server alongside the HTTP routes.
+      "/api": { target: "http://localhost:8787", ws: true },
     },
   },
 });

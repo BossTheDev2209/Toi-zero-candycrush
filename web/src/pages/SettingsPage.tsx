@@ -209,7 +209,6 @@ function AiSettings() {
   const [anthropicModel, setAnthropicModel] = useState("claude-sonnet-4-5");
   const [openaiModel, setOpenaiModel] = useState("gpt-4o-mini");
   const [claudeCliModel, setClaudeCliModel] = useState("sonnet");
-  const [maxTokens, setMaxTokens] = useState(1024);
   const [thinkingEnabled, setThinkingEnabled] = useState(true);
   const [responseLanguage, setResponseLanguage] = useState<"auto" | "th" | "en">("auto");
   const [ollamaNumCtx, setOllamaNumCtx] = useState(0);
@@ -256,7 +255,6 @@ function AiSettings() {
       setOllamaModel(c.ollamaModel);
       setOllamaKeepAlive(c.ollamaKeepAlive);
       setClaudeCliModel(c.claudeCliModel);
-      setMaxTokens(c.maxTokens);
       setThinkingEnabled(c.thinkingEnabled);
       setResponseLanguage(c.responseLanguage);
       setOllamaNumCtx(c.ollamaNumCtx);
@@ -280,7 +278,6 @@ function AiSettings() {
         ollamaModel,
         ollamaKeepAlive,
         claudeCliModel,
-        maxTokens,
         thinkingEnabled,
         responseLanguage,
         ollamaNumCtx: ollamaNumCtx || undefined,
@@ -371,19 +368,20 @@ function AiSettings() {
             </p>
           </label>
           <label className="block"><div className={labelCls}>Keep model in RAM</div>
-            <input className={inputCls} value={ollamaKeepAlive} onChange={(e) => setOllamaKeepAlive(e.target.value)} placeholder="0" />
+            <select className={inputCls} value={ollamaKeepAlive} onChange={(e) => setOllamaKeepAlive(e.target.value)}>
+              {/* Keep any saved custom value selectable so Save can't drop it. */}
+              {!KEEP_ALIVE_OPTS.some((o) => o.value === ollamaKeepAlive) && ollamaKeepAlive !== "" && (
+                <option value={ollamaKeepAlive}>{ollamaKeepAlive} (custom)</option>
+              )}
+              {KEEP_ALIVE_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
             <p className="mt-1.5 text-xs text-[var(--color-slate)]">
-              <code className="font-mono text-[11px]">0</code> = unload right after each reply (frees RAM, slower next request).{" "}
-              <code className="font-mono text-[11px]">5m</code> = keep loaded 5 min idle.{" "}
-              <code className="font-mono text-[11px]">-1</code> = forever.
+              How long Ollama keeps the model loaded after a reply. Unloading frees RAM but makes the next request slower (cold reload).
             </p>
           </label>
           <ContextLengthSlider value={ollamaNumCtx} onChange={setOllamaNumCtx} />
         </>
       )}
-
-      <label className="block"><div className={labelCls}>Max tokens per reply</div>
-        <input type="number" className={inputCls} value={maxTokens} onChange={(e) => setMaxTokens(Number(e.target.value))} /></label>
 
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -400,9 +398,12 @@ function AiSettings() {
           aria-checked={thinkingEnabled}
           aria-label="Toggle reasoning"
           onClick={() => setThinkingEnabled((v) => !v)}
-          className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors ${thinkingEnabled ? "bg-[var(--color-ink)]" : "bg-[var(--color-dust)]"}`}
+          className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${thinkingEnabled ? "bg-[var(--color-ink)]" : "bg-[var(--color-dust)]"}`}
         >
-          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${thinkingEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+          <span
+            className="absolute left-0.5 top-1/2 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+            style={{ transform: `translateY(-50%) translateX(${thinkingEnabled ? "20px" : "0px"})` }}
+          />
         </button>
       </div>
 
@@ -461,6 +462,15 @@ function AiSettings() {
     </div>
   );
 }
+
+// Ollama keep_alive presets. Values are passed verbatim ("0", "5m", "-1", …).
+const KEEP_ALIVE_OPTS: { value: string; label: string }[] = [
+  { value: "0", label: "Unload immediately (free RAM)" },
+  { value: "5m", label: "5 minutes" },
+  { value: "30m", label: "30 minutes" },
+  { value: "1h", label: "1 hour" },
+  { value: "-1", label: "Forever (until Ollama restarts)" },
+];
 
 // Snap points mirror Ollama's own context-length slider: model default, then
 // powers-of-two from 4k up to 256k tokens.

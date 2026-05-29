@@ -20,7 +20,8 @@ export interface AskOllamaInput {
   model: string;
   systemPrompt: string;
   messages: { role: "user" | "assistant"; content: string }[];
-  maxTokens: number;
+  /** Optional `num_predict` cap. Omitted = generate until done / context fills. */
+  maxTokens?: number;
   signal?: AbortSignal;
   /**
    * Passed to Ollama as `keep_alive`. "0" unloads the model from RAM right after
@@ -72,7 +73,9 @@ export async function askOllama(input: AskOllamaInput): Promise<AiAskResult> {
     stream: true,
     think: input.think ?? true,
     options: {
-      num_predict: input.maxTokens,
+      // Only cap output when a positive limit is given; otherwise let the model
+      // generate until it's done (no more mid-answer truncation).
+      ...(input.maxTokens && input.maxTokens > 0 ? { num_predict: input.maxTokens } : {}),
       // Only send num_ctx when explicitly set, so we don't override a model's
       // own (possibly larger) default with a smaller number unintentionally.
       ...(input.numCtx && input.numCtx > 0 ? { num_ctx: input.numCtx } : {}),

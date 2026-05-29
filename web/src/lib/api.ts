@@ -159,7 +159,6 @@ export const api = {
       ollamaModel: string;
       ollamaKeepAlive: string;
       claudeCliModel: string;
-      maxTokens: number;
       thinkingEnabled: boolean;
       responseLanguage: "auto" | "th" | "en";
       ollamaNumCtx: number;
@@ -178,7 +177,6 @@ export const api = {
     ollamaModel?: string;
     ollamaKeepAlive?: string;
     claudeCliModel?: string;
-    maxTokens?: number;
     thinkingEnabled?: boolean;
     responseLanguage?: "auto" | "th" | "en";
     ollamaNumCtx?: number;
@@ -186,9 +184,9 @@ export const api = {
     tutorStyle?: string;
   }) =>
     fetch("/api/ai/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; provider: string }>),
-  saveQuickAiSettings: (body: { thinkingEnabled?: boolean; responseLanguage?: "auto" | "th" | "en" }) =>
+  saveQuickAiSettings: (body: { thinkingEnabled?: boolean; responseLanguage?: "auto" | "th" | "en"; ollamaModel?: string }) =>
     fetch("/api/ai/quick-settings", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(
-      json<{ ok: boolean; thinkingEnabled: boolean; responseLanguage: "auto" | "th" | "en" }>,
+      json<{ ok: boolean; thinkingEnabled: boolean; responseLanguage: "auto" | "th" | "en"; ollamaModel: string }>,
     ),
   getAiHistory: (problemId: number) =>
     fetch(`/api/ai/history/${problemId}`).then(json<{ messages: { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; thinking: string | null; duration_ms: number | null; created_at: string }[] }>),

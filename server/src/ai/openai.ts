@@ -6,7 +6,8 @@ export interface AskOpenAiInput {
   model: string;
   systemPrompt: string;
   messages: { role: "user" | "assistant"; content: string }[];
-  maxTokens: number;
+  /** Optional length cap. Omitted = model default. */
+  maxTokens?: number;
   signal?: AbortSignal;
   /** When provided, stream tokens live via SSE and forward each delta. */
   onDelta?: (d: AiStreamDelta) => void;
@@ -25,7 +26,7 @@ export async function askOpenAi(input: AskOpenAiInput): Promise<AiAskResult> {
       },
       body: JSON.stringify({
         model: input.model,
-        max_tokens: input.maxTokens,
+        ...(input.maxTokens && input.maxTokens > 0 ? { max_tokens: input.maxTokens } : {}),
         stream,
         // Ask for a final usage frame on the stream so we can still report tokens.
         ...(stream ? { stream_options: { include_usage: true } } : {}),

@@ -12,10 +12,19 @@ export interface AiStreamDelta {
   thinking?: string;
 }
 
+/**
+ * Anthropic's API *requires* a `max_tokens`, so we send a generous ceiling
+ * rather than exposing a user knob (a low cap was the cause of replies getting
+ * cut off mid-answer). Ollama and OpenAI omit the cap entirely and use the
+ * model/provider default.
+ */
+export const ANTHROPIC_MAX_TOKENS = 8192;
+
 export interface AiAskInput {
   systemPrompt: string;
   messages: { role: "user" | "assistant"; content: string }[];
-  maxTokens: number;
+  /** Optional length cap. Omitted = provider default (no cap for Ollama/OpenAI). */
+  maxTokens?: number;
   /** When aborted, the provider should stop generation ASAP and return whatever partial text it has. */
   signal?: AbortSignal;
   /**
@@ -51,7 +60,6 @@ export interface AiProviderDispatcher {
 
 export function buildProvider(ai: AppConfig["ai"]): AiProvider {
   const provider = ai.provider ?? "ollama";
-  const maxTokens = ai.maxTokens ?? 1024;
 
   if (provider === "anthropic") {
     const model = ai.anthropicModel || "claude-sonnet-4-5";
@@ -63,7 +71,7 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
         model,
         systemPrompt: input.systemPrompt,
         messages: input.messages,
-        maxTokens: input.maxTokens ?? maxTokens,
+        maxTokens: input.maxTokens ?? ANTHROPIC_MAX_TOKENS,
         signal: input.signal,
         onDelta: input.onDelta,
       }),
@@ -79,7 +87,7 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
         model,
         systemPrompt: input.systemPrompt,
         messages: input.messages,
-        maxTokens: input.maxTokens ?? maxTokens,
+        maxTokens: input.maxTokens,
         signal: input.signal,
         onDelta: input.onDelta,
       }),
@@ -107,7 +115,7 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
       model,
       systemPrompt: input.systemPrompt,
       messages: input.messages,
-      maxTokens: input.maxTokens ?? maxTokens,
+      maxTokens: input.maxTokens,
       signal: input.signal,
       keepAlive: ai.ollamaKeepAlive ?? "0",
       think: ai.thinkingEnabled ?? true,

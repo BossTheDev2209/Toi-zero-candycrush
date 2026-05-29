@@ -99,6 +99,9 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
     x: typeof window !== "undefined" ? Math.max(16, window.innerWidth - 416) : 400,
     y: 84,
   });
+  // Resizable sizes, persisted per layout.
+  const [dockWidth, setDockWidth] = usePersisted("aiHelp.dockW", 380);
+  const [floatSize, setFloatSize] = usePersisted("aiHelp.floatSize", { w: 396, h: 620 });
 
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -110,6 +113,10 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
   // Quick controls, mirrored from the server and persisted there on change.
   const [thinking, setThinking] = useState(true);
   const [language, setLanguage] = useState<Lang>("auto");
+  // Model picker (Ollama). `model` mirrors the active model; `models` is the
+  // installed list fetched when the panel opens against an Ollama provider.
+  const [model, setModel] = useState("");
+  const [models, setModels] = useState<string[]>([]);
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
@@ -117,20 +124,38 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // True while the message list is scrolled (near) the bottom. Gates auto-scroll
+  // so a streaming reply never yanks the view down while you're reading up top.
+  const stickRef = useRef(true);
 
   useEffect(() => {
     if (!open || minimized) return;
     void api.getAiStatus().then((s) => {
       setStatus(s);
+      setModel(s.model ?? "");
       if (typeof s.thinkingEnabled === "boolean") setThinking(s.thinkingEnabled);
       if (s.responseLanguage) setLanguage(s.responseLanguage);
+      // Only Ollama exposes a switchable installed-model list.
+      if (s.provider === "ollama") {
+        void api.listOllamaModels().then((r) => setModels(r.models)).catch(() => setModels([]));
+      } else {
+        setModels([]);
+      }
     }).catch(() => setStatus(null));
-    void api.getAiHistory(problemId).then((r) => setMessages(r.messages));
+    void api.getAiHistory(problemId).then((r) => { stickRef.current = true; setMessages(r.messages); });
   }, [open, minimized, problemId]);
 
+  // Auto-scroll only when already pinned to the bottom (see stickRef). New deltas
+  // during generation won't drag the view if you've scrolled up to read.
   useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+    if (stickRef.current && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, busy, stream]);
+
+  function onListScroll() {
+    const el = listRef.current;
+    if (!el) return;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }
 
   // Abort any in-flight request if the panel unmounts.
   useEffect(() => () => { abortRef.current?.abort(); }, []);
@@ -152,11 +177,12 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
       : prev);
   }
 
-  async function send(force = false) {
-    if (!draft.trim() || busy) return;
+  async function deliver(rawMessage: string, force = false) {
+    const message = rawMessage.trim();
+    if (!message || busy) return;
     setBusy(true); setError(null);
-    const message = draft;
     setDraft("");
+    stickRef.current = true; // a user-initiated send always jumps to the bottom
     setMessages((prev) => [...prev, {
       id: -1, role: "user", content: message,
       tokens_in: null, tokens_out: null, thinking: null, duration_ms: null,
@@ -178,6 +204,7 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
       setStream(null); setBusy(false); abortRef.current = null;
     }
   }
+  const send = (force = false) => { void deliver(draft, force); };
 
   async function stop() {
     // Server aborts the in-flight provider call; the stream then emits a
@@ -231,6 +258,11 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
     setLanguage(next);
     void api.saveQuickAiSettings({ responseLanguage: next }).catch(() => { /* keep optimistic */ });
   }
+  function changeModel(next: string) {
+    setModel(next);
+    setStatus((s) => (s ? { ...s, model: next } : s));
+    void api.saveQuickAiSettings({ ollamaModel: next }).catch(() => { /* keep optimistic */ });
+  }
 
   // ---- Drag (float mode only) ---------------------------------------------
   function onHeaderPointerDown(e: React.PointerEvent) {
@@ -246,6 +278,42 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
         y: clamp(ev.clientY - dy, 8, window.innerHeight - 64),
       });
     };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
+  // ---- Resize -------------------------------------------------------------
+  // Dock: drag the left edge to set the sidebar width. Float: drag the
+  // bottom-right corner to set width + height. Both persist via usePersisted.
+  function onDockResizeDown(e: React.PointerEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = dockWidth;
+    const move = (ev: PointerEvent) =>
+      setDockWidth(clamp(startW - (ev.clientX - startX), 320, Math.min(760, window.innerWidth - 40)));
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+  function onFloatResizeDown(e: React.PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const sw = floatSize.w;
+    const sh = floatSize.h;
+    const move = (ev: PointerEvent) =>
+      setFloatSize({
+        w: clamp(sw + (ev.clientX - startX), 320, Math.max(320, window.innerWidth - pos.x - 8)),
+        h: clamp(sh + (ev.clientY - startY), 300, Math.max(300, window.innerHeight - pos.y - 8)),
+      });
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
@@ -285,16 +353,37 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
   }
 
   const shellClass = mode === "dock"
-    ? "ai-help-panel fixed bottom-0 right-0 top-0 z-40 flex w-[380px] max-w-[90vw] flex-col border-l border-[var(--color-dust)] bg-[var(--color-canvas)] shadow-[-12px_0_36px_rgba(0,0,0,0.08)]"
-    : "ai-help-panel ai-help-float fixed z-40 flex w-[396px] max-w-[92vw] flex-col overflow-hidden rounded-[20px] border border-[var(--color-dust)] bg-[var(--color-canvas)] shadow-[0_28px_70px_rgba(0,0,0,0.22)]";
-  const shellStyle = mode === "float"
-    ? { left: pos.x, top: pos.y, height: "min(78vh, 680px)" }
-    : undefined;
+    ? "ai-help-panel fixed bottom-0 right-0 top-0 z-40 flex max-w-[95vw] flex-col border-l border-[var(--color-dust)] bg-[var(--color-canvas)] shadow-[-12px_0_36px_rgba(0,0,0,0.08)]"
+    : "ai-help-panel ai-help-float fixed z-40 flex max-w-[95vw] flex-col overflow-hidden rounded-[20px] border border-[var(--color-dust)] bg-[var(--color-canvas)] shadow-[0_28px_70px_rgba(0,0,0,0.22)]";
+  const shellStyle: React.CSSProperties = mode === "float"
+    ? { left: pos.x, top: pos.y, width: floatSize.w, height: floatSize.h }
+    : { width: dockWidth };
 
   const chip = "motion-press inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium";
+  const PROMPT_PRESETS: { label: string; text: string }[] = [
+    { label: "Hint", text: "Give me a small hint to move forward — don't reveal the full solution." },
+    { label: "Approach", text: "Explain the overall approach / algorithm for this problem." },
+    { label: "Why wrong?", text: "Look at my current code and the latest run result. Why is it failing?" },
+    { label: "Faster", text: "My solution is too slow. How do I improve the time complexity?" },
+    { label: "Edge cases", text: "What edge cases should I watch out for in this problem?" },
+  ];
 
   return (
     <div ref={panelRef} className={shellClass} style={shellStyle}>
+      {mode === "dock" ? (
+        <div
+          onPointerDown={onDockResizeDown}
+          title="Drag to resize"
+          className="absolute left-0 top-0 z-10 h-full w-1.5 cursor-ew-resize hover:bg-[color-mix(in_srgb,var(--color-signal-light)_45%,transparent)]"
+        />
+      ) : (
+        <div
+          onPointerDown={onFloatResizeDown}
+          title="Drag to resize"
+          className="absolute bottom-0 right-0 z-10 h-4 w-4 cursor-nwse-resize"
+          style={{ background: "linear-gradient(135deg, transparent 50%, var(--color-dust) 50%)" }}
+        />
+      )}
       {/* Title bar — drag handle in float mode. */}
       <div
         onPointerDown={onHeaderPointerDown}
@@ -353,17 +442,37 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
           <IconGlobe className="h-3.5 w-3.5" />
           {LANG_LABEL[language]}
         </button>
+
+        {/* Model picker — Ollama lists installed models; other providers show
+            the active model as a static label (it's pinned in Settings). */}
+        {status?.provider === "ollama" ? (
+          <label className="ml-auto flex min-w-0 items-center" title="Active Ollama model — switches the model used for replies">
+            <span className="sr-only">Model</span>
+            <select
+              value={model}
+              onChange={(e) => changeModel(e.target.value)}
+              className={`${chip} max-w-[150px] truncate border-[var(--color-dust)] bg-transparent text-[var(--color-graphite)] hover:border-[var(--color-slate)]`}
+            >
+              {Array.from(new Set([model, ...models].filter(Boolean))).map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          status && <span className="ml-auto max-w-[150px] truncate text-[11px] text-[var(--color-slate)]" title={status.model}>{status.model}</span>
+        )}
+
         <a
           href="/settings#ai-settings"
           title="AI settings (model, context length, persona)"
           aria-label="AI settings"
-          className="motion-press ml-auto rounded-full p-1.5 text-[var(--color-slate)] hover:bg-[var(--color-bone)] hover:text-[var(--color-ink)]"
+          className="motion-press rounded-full p-1.5 text-[var(--color-slate)] hover:bg-[var(--color-bone)] hover:text-[var(--color-ink)]"
         >
           <IconGear className="h-4 w-4" />
         </a>
       </div>
 
-      <div ref={listRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+      <div ref={listRef} onScroll={onListScroll} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {messages.length === 0 && !stream && status?.hasKey && (
           <p className="text-sm text-[var(--color-slate)]">Ask for a hint about this problem. The AI sees your saved code, statement, and latest run result.</p>
         )}
@@ -472,6 +581,22 @@ export function AiHelpPanel({ problemId }: { problemId: number }) {
       </div>
 
       <div className="border-t border-[var(--color-dust)] px-4 py-3 space-y-2">
+        {/* Prompt suggestions — one-tap starters. Hidden while a reply streams. */}
+        {status?.hasKey && !busy && (
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {PROMPT_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => void deliver(p.text)}
+                title={p.text}
+                className="motion-press shrink-0 rounded-full border border-[var(--color-dust)] bg-[var(--color-lifted)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-graphite)] hover:border-[var(--color-slate)] hover:text-[var(--color-ink)]"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <button onClick={clearChat} title="Clear chat" className="text-xs text-[var(--color-slate)] hover:text-[var(--color-ink)]">Clear chat</button>
           <button onClick={() => void send(true)} disabled={busy || !draft.trim()} className="text-xs text-[var(--color-slate)] hover:text-[var(--color-ink)] disabled:opacity-50">Just show me</button>

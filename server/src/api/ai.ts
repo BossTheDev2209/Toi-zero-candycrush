@@ -26,7 +26,6 @@ const AiSettingsZ = z.object({
   ollamaModel: z.string().optional(),
   ollamaKeepAlive: z.string().optional(),
   claudeCliModel: z.string().optional(),
-  maxTokens: z.number().int().positive().optional(),
   thinkingEnabled: z.boolean().optional(),
   responseLanguage: z.enum(["auto", "th", "en"]).optional(),
   ollamaNumCtx: z.number().int().positive().optional(),
@@ -42,6 +41,7 @@ const AiSettingsZ = z.object({
 const QuickSettingsZ = z.object({
   thinkingEnabled: z.boolean().optional(),
   responseLanguage: z.enum(["auto", "th", "en"]).optional(),
+  ollamaModel: z.string().min(1).optional(),
 });
 
 export function aiRouter(db: Database, cfg: AppConfig) {
@@ -97,7 +97,6 @@ export function aiRouter(db: Database, cfg: AppConfig) {
     ollamaModel: cfg.ai?.ollamaModel ?? "qwen2.5-coder:7b",
     ollamaKeepAlive: cfg.ai?.ollamaKeepAlive ?? "0",
     claudeCliModel: cfg.ai?.claudeCliModel ?? "sonnet",
-    maxTokens: cfg.ai?.maxTokens ?? 1024,
     thinkingEnabled: cfg.ai?.thinkingEnabled ?? true,
     responseLanguage: cfg.ai?.responseLanguage ?? "auto",
     ollamaNumCtx: cfg.ai?.ollamaNumCtx ?? 0,
@@ -239,7 +238,6 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       result = await provider.ask({
         systemPrompt,
         messages: history,
-        maxTokens: cfg.ai?.maxTokens ?? 1024,
         signal: controller.signal,
       });
     } finally {
@@ -371,7 +369,6 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       result = await provider.ask({
         systemPrompt,
         messages: history,
-        maxTokens: cfg.ai?.maxTokens ?? 1024,
         signal: controller.signal,
       });
     } finally {
@@ -431,7 +428,7 @@ export function aiRouter(db: Database, cfg: AppConfig) {
     return c.json({ ok: true, provider: body.provider });
   });
 
-  /** Persist just the in-panel toggles (thinking / reply language). */
+  /** Persist just the in-panel toggles (thinking / reply language / model). */
   r.patch("/quick-settings", async (c) => {
     const body = QuickSettingsZ.parse(await c.req.json());
     persistAiUpdate(cfg, body);
@@ -439,6 +436,7 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       ok: true,
       thinkingEnabled: cfg.ai?.thinkingEnabled ?? true,
       responseLanguage: cfg.ai?.responseLanguage ?? "auto",
+      ollamaModel: cfg.ai?.ollamaModel ?? "qwen2.5-coder:7b",
     });
   });
 
@@ -512,7 +510,6 @@ export function aiRouter(db: Database, cfg: AppConfig) {
           result = await provider.ask({
             systemPrompt,
             messages: history,
-            maxTokens: cfg.ai?.maxTokens ?? 1024,
             signal: controller.signal,
             onDelta: (d) => safeEnqueue(sseFrame("delta", d)),
           });
