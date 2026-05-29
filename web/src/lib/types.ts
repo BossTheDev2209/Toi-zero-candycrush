@@ -34,7 +34,25 @@ export interface ScoreSyncProgress {
   running: boolean;
   total: number;
   done: number;
+  /** Count of problems whose stored best score was actually raised by this sync. */
   updated: number;
+  failed: { slug: string; error: string }[];
+  startedAt: string | null;
+  finishedAt: string | null;
+  /**
+   * ISO timestamp of the most recent per-problem sync (MAX(toi_last_sync_at)
+   * from the DB), or null when no problem has ever been synced. Survives
+   * server restarts; the client uses this to throttle the auto-sync-on-mount.
+   */
+  lastSyncAt: string | null;
+}
+
+export interface PdfSyncProgress {
+  running: boolean;
+  total: number;
+  done: number;
+  synced: number;
+  skipped: number;
   failed: { slug: string; error: string }[];
   startedAt: string | null;
   finishedAt: string | null;

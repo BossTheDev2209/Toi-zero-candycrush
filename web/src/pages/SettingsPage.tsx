@@ -133,10 +133,66 @@ export function SettingsPage() {
         </p>
       </section>
 
+      <section className="motion-surface mt-8 rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-8 text-sm">
+        <div className="text-[12px] font-bold tracking-[0.04em] uppercase text-[var(--color-slate)] mb-3">
+          Counts (นับ / ไม่นับ) — bookmarklet
+        </div>
+        <CountsBookmarklet />
+      </section>
+
       <section className="motion-surface mt-8 rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-8">
         <div className="text-[12px] font-bold tracking-[0.04em] uppercase text-[var(--color-slate)] mb-3">AI assistant</div>
         <AiSettings />
       </section>
+    </div>
+  );
+}
+
+/**
+ * TOI's overview page doesn't include the นับคะแนน column in the server-rendered
+ * HTML — the column is injected client-side (you have a Chrome extension that
+ * does this). That means `/api/toi/sync-counts` can't fetch it from the server
+ * cookie alone; the data only exists in your browser's DOM.
+ *
+ * Workaround: a bookmarklet. Drag the link below to your bookmarks bar, then
+ * open the TOI overview tab and click the bookmark. It reads the rendered DOM,
+ * POSTs `{slug: 0|1}` to `/api/toi/counts-bulk`, and surfaces a count summary
+ * via alert(). One click = full counts re-sync. No console needed.
+ *
+ * The JS is intentionally tiny: just enough to walk rows, match the slug shape
+ * from <th>, and look for "นับ" or "ไม่นับ" anywhere in the row's cells. The
+ * server endpoint is already CORS-permissive (origin "*"), so cross-origin
+ * fetch from toi-coding.informatics.buu.ac.th to localhost:8787 works.
+ */
+function CountsBookmarklet() {
+  const code =
+    `(async()=>{const rs=[...document.querySelectorAll('table tbody tr')];const c={};for(const r of rs){const t=r.querySelector('th');if(!t)continue;const s=t.textContent.trim();if(!/^[A-Z]\\d+-\\d+$/.test(s))continue;const cs=[...r.children].map(x=>x.textContent.trim());if(cs.includes('ไม่นับ'))c[s]=0;else if(cs.includes('นับ'))c[s]=1;}try{const r=await fetch('http://localhost:8787/api/toi/counts-bulk',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({counts:c})});const j=await r.json();alert('TOI counts synced: '+(j.seen||0)+' problems ('+(j.uncounted||0)+' ไม่นับ)');}catch(e){alert('Sync failed: '+(e&&e.message||e));}})();`;
+  const href = `javascript:${code}`;
+
+  return (
+    <div className="space-y-3 text-[var(--color-ink)]">
+      <p>
+        Your TOI contest hides the <code className="font-mono text-[12px]">นับ/ไม่นับ</code> column from the server HTML — only your browser sees it.
+        Drag this link to your bookmarks bar, then click it from the TOI overview tab to sync the counts here:
+      </p>
+      <div>
+        {/* Drag-to-bookmarks pattern. href= javascript: makes it executable when */}
+        {/* invoked from a bookmark; preventDefault on click keeps the in-app click */}
+        {/* from blowing away the current page. */}
+        <a
+          href={href}
+          onClick={(e) => e.preventDefault()}
+          draggable
+          className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-[var(--color-ink)] bg-[var(--color-ink)] px-5 py-2 text-[13px] font-medium text-[var(--color-canvas)] no-underline cursor-grab active:cursor-grabbing"
+        >
+          ⇣ Sync TOI counts
+        </a>
+      </div>
+      <p className="text-xs text-[var(--color-slate)]">
+        How to use: (1) open <code className="font-mono text-[12px]">{`https://toi-coding.informatics.buu.ac.th/00-pre-toi`}</code> in a tab,
+        (2) click the bookmark from that tab. You should see an alert like "TOI counts synced: 157 problems (36 ไม่นับ)".
+        Re-run whenever TOI updates which problems count.
+      </p>
     </div>
   );
 }

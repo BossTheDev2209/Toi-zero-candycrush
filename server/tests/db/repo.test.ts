@@ -151,11 +151,18 @@ describe("problemRepo", () => {
     expect(first!.toi_best_score).toBe(0);
     expect(first!.toi_last_sync_at).toBeNull();
 
-    expect(repo.updateToiScore(a1Ids[0]!, 75, "2026-05-26T00:00:00.000Z")).toBe(true);
+    // First sync raises 0 → 75, so scoreImproved is true.
+    expect(repo.updateToiScore(a1Ids[0]!, 75, "2026-05-26T00:00:00.000Z"))
+      .toEqual({ found: true, scoreImproved: true });
     expect(repo.getById(a1Ids[0]!)!.toi_best_score).toBe(75);
-    expect(repo.updateToiScore(a1Ids[0]!, 40, "2026-05-26T01:00:00.000Z")).toBe(true);
+    // A lower score is still recorded (timestamp updates) but doesn't beat the
+    // existing best — scoreImproved is false. This is exactly the signal the
+    // sync progress counter needs to avoid over-reporting "updated".
+    expect(repo.updateToiScore(a1Ids[0]!, 40, "2026-05-26T01:00:00.000Z"))
+      .toEqual({ found: true, scoreImproved: false });
     expect(repo.getById(a1Ids[0]!)!.toi_best_score).toBe(75);
-    expect(repo.updateToiScore(9999, 100, "2026-05-26T02:00:00.000Z")).toBe(false);
+    expect(repo.updateToiScore(9999, 100, "2026-05-26T02:00:00.000Z"))
+      .toEqual({ found: false, scoreImproved: false });
 
     for (const id of a1Ids.slice(1, 20)) repo.updateToiScore(id, 80, "2026-05-26T03:00:00.000Z");
     for (const id of a2Ids) repo.updateToiScore(id, 100, "2026-05-26T04:00:00.000Z");
@@ -193,6 +200,31 @@ describe("problemRepo", () => {
     expect(row.toi_previous_year).toBe(1);
     expect(row.toi_previous_year_note).toBe("solved in 2025");
     expect(repo.qualification()).toEqual({ a1Count: 1, a2a3Count: 0, qualified: false });
+  });
+
+  test("maxToiLastSyncAt reports the most recent sync across all problems", () => {
+    const db = openDb(":memory:");
+    const repo = problemRepo(db);
+    const a = repo.create({
+      slug: "A1-301", title: "a", statementMd: "", inputMd: "", outputMd: "",
+      category: "A1", timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [], extraTests: [],
+    });
+    const b = repo.create({
+      slug: "A1-302", title: "b", statementMd: "", inputMd: "", outputMd: "",
+      category: "A1", timeLimitMs: 1000, memoryLimitMb: 256, ioMode: "stdio", sourceUrl: "",
+      sampleTests: [], extraTests: [],
+    });
+
+    expect(repo.maxToiLastSyncAt()).toBeNull();
+
+    repo.updateToiScore(a, 50, "2026-05-27T00:00:00.000Z");
+    repo.updateToiScore(b, 50, "2026-05-28T00:00:00.000Z");
+    expect(repo.maxToiLastSyncAt()).toBe("2026-05-28T00:00:00.000Z");
+
+    // A later sync on the older row should advance the max.
+    repo.updateToiScore(a, 80, "2026-05-29T00:00:00.000Z");
+    expect(repo.maxToiLastSyncAt()).toBe("2026-05-29T00:00:00.000Z");
   });
 
   test("toi_counts defaults to 1 and excludes qualification when 0", () => {

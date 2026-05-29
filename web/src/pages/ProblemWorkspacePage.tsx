@@ -30,15 +30,36 @@ export function ProblemWorkspacePage() {
   const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
-    api.getProblem(pid).then((problem) => {
+    let cancelled = false;
+    api.getProblem(pid).then(async (problem) => {
+      if (cancelled) return;
       setP(problem);
       setStatementMode(problem.has_pdf ? "pdf" : "markdown");
+      // Auto-fetch the PDF on first open if it's missing and the problem has
+      // a TOI source URL we can pull from. Silent (no spinner, no error
+      // toast) — the explicit "Download PDF" button still surfaces problems.
+      // Swap to PDF view as soon as it lands so the user doesn't have to
+      // re-toggle the segmented control.
+      if (!problem.has_pdf && problem.source_url.includes("toi-coding.informatics.buu.ac.th")) {
+        try {
+          const r = await api.syncPdf(pid);
+          if (cancelled) return;
+          if (r.ok) {
+            const next = await api.getProblem(pid);
+            if (cancelled) return;
+            setP(next);
+            if (next.has_pdf) setStatementMode("pdf");
+          }
+        } catch { /* silent — manual button still works */ }
+      }
     });
     api.getSolution(pid).then((s) => {
+      if (cancelled) return;
       if (s) { setLang(s.language); setCode(s.code); }
       else setCode(starterFor("cpp"));
     });
-    api.listRuns(pid).then(setRuns);
+    api.listRuns(pid).then((r) => { if (!cancelled) setRuns(r); });
+    return () => { cancelled = true; };
   }, [pid]);
 
   async function save() {

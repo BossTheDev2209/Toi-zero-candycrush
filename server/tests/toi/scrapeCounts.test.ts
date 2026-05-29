@@ -1,62 +1,77 @@
 import { describe, expect, test } from "bun:test";
 import { parseCounts } from "../../src/toi/scrapeCounts";
 
-const sampleHtml = `
+// Layout A — current 00-pre-toi (captured live 2026-05-29).
+// Slug is in <th>, NO นับ/ไม่นับ column at all → every row defaults to counts=1.
+const currentLayoutHtml = `
 <table>
-  <thead><tr><th>Score</th><th>Task</th><th>Name</th><th>Time</th><th>Mem</th><th>Type</th><th>Files</th><th>นับ</th><th>pdf</th><th>submit</th></tr></thead>
+  <thead><tr><th>Score</th><th>Task</th><th>Name</th><th>Time limit</th><th>Memory limit</th><th>Type</th><th>Files</th></tr></thead>
   <tbody>
     <tr>
-      <td>100 / 100</td>
-      <td><a href="/00-pre-toi/tasks/A1-001/description">สวัสดี: ชื่อ</a></td>
+      <td class="public_score score_100">100 / 100</td>
+      <th>A1-001</th>
+      <td>สวัสดี: ชื่อ</td>
       <td>1.000 second</td>
       <td>8.00 MiB</td>
       <td>Batch</td>
       <td>A1-001[.cpp|.c|.py]</td>
-      <td>นับ</td>
-      <td><a href="/00-pre-toi/tasks/A1-001/statements/TH">PDF</a></td>
-      <td><button>ส่ง code</button></td>
     </tr>
     <tr>
-      <td>0 / 100</td>
-      <td><a href="/00-pre-toi/tasks/A1-002/description">แลกเปลี่ยน</a></td>
+      <td class="public_score score_0">0 / 100</td>
+      <th>A1-002</th>
+      <td>แลกเปลี่ยนเงิน</td>
       <td>1.000 second</td>
       <td>8.00 MiB</td>
       <td>Batch</td>
       <td>A1-002[.cpp|.c|.py]</td>
-      <td>ไม่นับ</td>
-      <td>PDF</td>
-      <td>ส่ง code</td>
+    </tr>
+  </tbody>
+</table>
+`;
+
+// Layout B — older anchor + นับ/ไม่นับ layout. Still in production on some TOI
+// instances, kept supported so the parser stays portable.
+const legacyLayoutHtml = `
+<table>
+  <tbody>
+    <tr>
+      <td>100 / 100</td>
+      <td><a href="/00-pre-toi/tasks/A1-101/description">x</a></td>
+      <td>1.000 second</td><td>8.00 MiB</td><td>Batch</td><td>A1-101[.cpp]</td>
+      <td>นับ</td>
     </tr>
     <tr>
       <td>0 / 100</td>
-      <td><a href="/00-pre-toi/tasks/A2-005/description">x</a></td>
-      <td>1</td><td>8</td><td>Batch</td><td>A2-005</td><td>นับ</td><td>PDF</td><td>submit</td>
+      <td><a href="/00-pre-toi/tasks/A1-102/description">y</a></td>
+      <td>1.000 second</td><td>8.00 MiB</td><td>Batch</td><td>A1-102[.cpp]</td>
+      <td>ไม่นับ</td>
     </tr>
   </tbody>
 </table>
 `;
 
 describe("parseCounts", () => {
-  test("extracts นับ/ไม่นับ per slug", () => {
-    const counts = parseCounts(sampleHtml);
-    expect(counts.size).toBe(3);
-    expect(counts.get("A1-001")).toBe(1);
-    expect(counts.get("A1-002")).toBe(0);
-    expect(counts.get("A2-005")).toBe(1);
+  test("current layout (no counts column) emits no rows — user toggles aren't clobbered", () => {
+    // Slug is matched (we recognize the <th> form), but with no explicit
+    // นับ / ไม่นับ in any cell, parseCounts intentionally omits the row so
+    // /sync-counts can't overwrite a manual `toi_counts` toggle.
+    const counts = parseCounts(currentLayoutHtml);
+    expect(counts.size).toBe(0);
   });
 
-  test("ignores rows without a task slug link", () => {
-    const html = `<table><tr><td>x</td><td>y</td><td>z</td><td>a</td><td>b</td><td>c</td><td>นับ</td></tr></table>`;
-    expect(parseCounts(html).size).toBe(0);
+  test("legacy layout: explicit ไม่นับ flips to 0", () => {
+    const counts = parseCounts(legacyLayoutHtml);
+    expect(counts.size).toBe(2);
+    expect(counts.get("A1-101")).toBe(1);
+    expect(counts.get("A1-102")).toBe(0);
   });
 
-  test("ignores rows where the counts cell is something else", () => {
-    const html = `
-      <table><tr>
-        <td>0</td><td><a href="/00-pre-toi/tasks/A1-099/description">x</a></td>
-        <td>1</td><td>2</td><td>3</td><td>4</td><td>Unknown</td><td>PDF</td>
-      </tr></table>
-    `;
-    expect(parseCounts(html).size).toBe(0);
+  test("ignores rows that have neither a <th> slug nor a /tasks/ link", () => {
+    expect(parseCounts("<table><tr><td>x</td><td>y</td><td>z</td></tr></table>").size).toBe(0);
+  });
+
+  test("ignores header rows (slug-shape filter rejects <th>Score</th>)", () => {
+    const headerOnly = "<table><thead><tr><th>Score</th><th>Task</th></tr></thead></table>";
+    expect(parseCounts(headerOnly).size).toBe(0);
   });
 });

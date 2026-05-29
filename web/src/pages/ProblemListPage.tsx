@@ -9,6 +9,7 @@ import { ZigzagPath } from "../components/ZigzagPath";
 import { SectionBand } from "../components/SectionBand";
 import { QualificationChip } from "../components/QualificationChip";
 import { SyncFromToiButton } from "../components/SyncFromToiButton";
+import { DownloadAllPdfsButton } from "../components/DownloadAllPdfsButton";
 import { PillButton } from "../components/PillButton";
 import { EyebrowLabel } from "../components/EyebrowLabel";
 
@@ -147,6 +148,7 @@ export function ProblemListPage({ onAdd }: { onAdd: () => void }) {
       <div className="fixed right-6 top-[88px] z-30 flex flex-col items-end gap-3">
         <QualificationChip qualification={qualification} />
         <SyncFromToiButton onSynced={load} />
+        <DownloadAllPdfsButton onDownloaded={load} />
       </div>
 
       <div className="mx-auto mb-8 max-w-[720px]">

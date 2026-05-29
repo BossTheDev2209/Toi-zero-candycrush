@@ -21,6 +21,7 @@ interface SyncProgress {
   running: boolean;
   total: number;
   done: number;
+  /** Count of problems whose `toi_best_score` was raised by this sync (not just touched). */
   updated: number;
   failed: { slug: string; error: string }[];
   startedAt: string | null;
@@ -328,9 +329,8 @@ export function toiRouter(db: Database, cfg: AppConfig) {
       }
       // Re-do the result handling inline so we don't double-process below.
       if (result.ok) {
-        if (pRepo.updateToiScore(problem.id, result.score, new Date().toISOString())) {
-          syncProgress.updated += 1;
-        }
+        const { scoreImproved } = pRepo.updateToiScore(problem.id, result.score, new Date().toISOString());
+        if (scoreImproved) syncProgress.updated += 1;
       } else {
         syncProgress.failed.push({ slug: problem.slug, error: result.error });
       }
@@ -343,7 +343,16 @@ export function toiRouter(db: Database, cfg: AppConfig) {
     return c.json(syncProgress, 202);
   });
 
-  r.get("/sync-progress", (c) => c.json(syncProgress));
+  /**
+   * Sync progress + the most recent per-problem sync timestamp. `lastSyncAt`
+   * comes from the DB (MAX(toi_last_sync_at)) so it survives server restarts —
+   * the client uses it to throttle the auto-sync-on-mount logic. Returning it
+   * here (rather than a new endpoint) keeps the mount path to one round-trip.
+   */
+  r.get("/sync-progress", (c) => c.json({
+    ...syncProgress,
+    lastSyncAt: pRepo.maxToiLastSyncAt(),
+  }));
 
   /**
    * Bulk-submit every problem with a saved local solution to TOI.

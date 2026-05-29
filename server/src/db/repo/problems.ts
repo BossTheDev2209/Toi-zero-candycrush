@@ -62,10 +62,14 @@ export function problemRepo(db: Database) {
   const updateProblem = db.prepare(
     `UPDATE problem SET title=?, statement_md=?, input_md=?, output_md=?, category=?, time_limit_ms=?, memory_limit_mb=?, io_mode=?, source_url=?, updated_at=datetime('now') WHERE id=?`
   );
+  const selectPriorScoreStmt = db.prepare(`SELECT toi_best_score FROM problem WHERE id = ?`);
   const updateToiScoreStmt = db.prepare(
     `UPDATE problem
      SET toi_best_score = max(toi_best_score, ?), toi_last_sync_at = ?, updated_at = datetime('now')
      WHERE id = ?`
+  );
+  const maxLastSyncStmt = db.prepare(
+    `SELECT MAX(toi_last_sync_at) AS lastSyncAt FROM problem`
   );
   const updateProgressFlagsStmt = db.prepare(
     `UPDATE problem
@@ -145,10 +149,27 @@ export function problemRepo(db: Database) {
       return info.changes > 0;
     },
 
-    updateToiScore(id: number, score: number, syncedAt: string): boolean {
+    /**
+     * Returns `{ found, scoreImproved }`. `scoreImproved` is true ONLY when
+     * the new score raises `toi_best_score` — the underlying UPDATE always
+     * stamps `toi_last_sync_at`, so plain `changes > 0` would over-count.
+     * Callers like `/sync-scores` use `scoreImproved` to tally "actually
+     * updated" so the progress counter reflects real changes, not just
+     * touched rows.
+     */
+    updateToiScore(id: number, score: number, syncedAt: string): { found: boolean; scoreImproved: boolean } {
       const clamped = Math.max(0, Math.min(100, Math.trunc(score)));
-      const info = updateToiScoreStmt.run(clamped, syncedAt, id);
-      return info.changes > 0;
+      const prior = selectPriorScoreStmt.get(id) as { toi_best_score: number } | null;
+      if (!prior) return { found: false, scoreImproved: false };
+      const scoreImproved = clamped > prior.toi_best_score;
+      updateToiScoreStmt.run(clamped, syncedAt, id);
+      return { found: true, scoreImproved };
+    },
+
+    /** ISO timestamp of the most recent per-problem TOI sync, or null if no problem has ever been synced. */
+    maxToiLastSyncAt(): string | null {
+      const row = maxLastSyncStmt.get() as { lastSyncAt: string | null } | null;
+      return row?.lastSyncAt ?? null;
     },
 
     updateProgressFlags(id: number, input: { toiPreviousYear: boolean; toiPreviousYearNote: string }): boolean {

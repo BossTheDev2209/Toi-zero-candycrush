@@ -1,4 +1,4 @@
-import type { Problem, ProblemDetail, JudgeResult, RunRow, Language, Qualification, ScoreSyncProgress } from "./types";
+import type { Problem, ProblemDetail, JudgeResult, RunRow, Language, Qualification, ScoreSyncProgress, PdfSyncProgress } from "./types";
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
@@ -29,8 +29,10 @@ export const api = {
     fetch(`/api/toi/${problemId}/submit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ language, code }) }).then(json<{ status: number | null; body: unknown; error: string | null; submitted?: boolean; finalUrl?: string; redirected?: boolean; contentType?: string }>),
   syncPdf: (problemId: number) =>
     fetch(`/api/problems/${problemId}/pdf/sync`, { method: "POST" }).then(json<{ ok: boolean; sizeKb?: number; error?: string }>),
-  syncAllPdfs: () =>
-    fetch("/api/problems/sync-pdfs", { method: "POST" }).then(json<{ synced: number; skipped: number; failed: { slug: string; error: string }[] }>),
+  startPdfSync: () =>
+    fetch("/api/problems/sync-pdfs", { method: "POST" }).then(json<PdfSyncProgress>),
+  getPdfSyncProgress: () =>
+    fetch("/api/problems/sync-pdfs-progress").then(json<PdfSyncProgress>),
   getQualification: () => fetch("/api/qualification").then(json<Qualification>),
   startScoreSync: () => fetch("/api/toi/sync-scores", { method: "POST" }).then(json<ScoreSyncProgress>),
   getScoreSyncProgress: () => fetch("/api/toi/sync-progress").then(json<ScoreSyncProgress>),
