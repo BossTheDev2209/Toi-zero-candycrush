@@ -8,6 +8,7 @@ import { solutionRepo } from "../db/repo/solutions";
 import { toiSubmissionRepo } from "../db/repo/toi_submissions";
 import { submitToToi } from "../toi/submit";
 import { fetchBestScore } from "../toi/scrapeScores";
+import { fetchBestSubmissionSource } from "../toi/fetchSubmission";
 import { fetchCounts } from "../toi/scrapeCounts";
 import { loginToToi } from "../toi/login";
 import { refreshXsrfFromContest } from "../toi/refreshXsrf";
@@ -205,6 +206,55 @@ export function toiRouter(db: Database, cfg: AppConfig) {
     });
 
     return c.json({ ...result, recovery });
+  });
+
+  /**
+   * Import the contestant's best existing TOI submission source into the local
+   * solution. For problems solved on TOI before adopting this app — pulls the
+   * highest-scoring submission's source code, saves it as the local solution,
+   * and returns it so the editor can load it. Single auth-recovery retry on a
+   * stale cookie/xsrf, mirroring the submit path.
+   */
+  r.post("/:problemId/import-submission", async (c) => {
+    const id = Number(c.req.param("problemId"));
+    const problem = pRepo.getById(id);
+    if (!problem) return c.json({ error: "problem not found" }, 404);
+
+    // Same auto-login-from-credentials path as sync-scores: if the cookie is
+    // missing but we have username/password, log in first.
+    if (cfg.toi.baseUrl && (!cfg.toi.cookie || !cfg.toi.xsrf) && cfg.toi.username && cfg.toi.password) {
+      const refresh = await refreshCookieIfPossible();
+      if (!refresh.ok) return c.json({ error: refresh.error ?? "TOI login failed." }, 400);
+    }
+    if (!cfg.toi.baseUrl || !cfg.toi.cookie || !cfg.toi.xsrf) {
+      return c.json({ error: "TOI not configured. Save TOI credentials in Settings." }, 400);
+    }
+
+    const doFetch = () => fetchBestSubmissionSource({
+      baseUrl: cfg.toi.baseUrl,
+      cookie: cfg.toi.cookie,
+      xsrf: cfg.toi.xsrf,
+      extraHeaders: cfg.toi.extraHeaders,
+      slug: problem.slug,
+    });
+
+    let result = await doFetch();
+    if (!result.ok && isAuthError(result.error)) {
+      const refresh = await recoverFromXsrf403();
+      if (refresh.ok) result = await doFetch();
+    }
+    if (!result.ok) return c.json({ ok: false, error: result.error }, 502);
+
+    // Persist as the local solution so it survives reloads and feeds submit-all.
+    sRepo.upsert(id, result.language, result.code);
+
+    return c.json({
+      ok: true,
+      language: result.language,
+      code: result.code,
+      score: result.score,
+      submissionId: result.submissionId,
+    });
   });
 
   r.post("/counts-bulk", async (c) => {

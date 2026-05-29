@@ -10,6 +10,7 @@ export interface AppConfig {
   compiler: {
     c:   { bin: string; flags: string[] };
     cpp: { bin: string; flags: string[] };
+    py?: { bin: string; flags: string[] };
   };
   toi: {
     baseUrl: string;

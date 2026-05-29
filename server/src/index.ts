@@ -31,7 +31,7 @@ app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/problems", pdfRouter(db, cfg, { problemsDir }));
 app.route("/api/problems", problemsRouter(db, problemsDir));
 app.route("/api/solutions", solutionsRouter(db));
-app.route("/api/runs", runsRouter(db));
+app.route("/api/runs", runsRouter(db, cfg));
 app.route("/api/toi", toiRouter(db, cfg));
 app.route("/api/ai", aiRouter(db, cfg));
 app.route("/api/qualification", qualificationRouter(db));

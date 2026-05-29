@@ -35,7 +35,7 @@
   --radius-circle: 9999px;
 
   /* Font family */
-  --font-sans: "Sofia Sans", "Inter", system-ui, sans-serif;
+  --font-sans: "Sofia Sans", "Noto Sans Thai", "Inter", system-ui, sans-serif;
 
   /* Shadow */
   --shadow-nav: 0 4px 24px 0 rgba(0, 0, 0, 0.04);

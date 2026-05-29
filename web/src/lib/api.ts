@@ -24,9 +24,17 @@ export const api = {
     fetch(`/api/solutions/${problemId}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ language, code }) }).then(json<{ ok: boolean }>),
   runCode: (problemId: number, language: Language, code: string, scope: "sample" | "all") =>
     fetch(`/api/runs/${problemId}/run`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ language, code, scope }) }).then(json<JudgeResult>),
+  execCode: (problemId: number, language: Language, code: string, input: string) =>
+    fetch(`/api/runs/${problemId}/exec`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ language, code, input }) }).then(
+      json<{ ok: boolean; compileStderr?: string; stdout: string; stderr: string; exit: number | null; runtimeMs: number; timedOut: boolean }>,
+    ),
   listRuns: (problemId: number) => fetch(`/api/runs/${problemId}`).then(json<RunRow[]>),
   submitToToi: (problemId: number, language: Language, code: string) =>
     fetch(`/api/toi/${problemId}/submit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ language, code }) }).then(json<{ status: number | null; body: unknown; error: string | null; submitted?: boolean; finalUrl?: string; redirected?: boolean; contentType?: string }>),
+  importToiSubmission: (problemId: number) =>
+    fetch(`/api/toi/${problemId}/import-submission`, { method: "POST" }).then(
+      json<{ ok: true; language: Language; code: string; score: number; submissionId: number } | { ok: false; error: string }>,
+    ),
   syncPdf: (problemId: number) =>
     fetch(`/api/problems/${problemId}/pdf/sync`, { method: "POST" }).then(json<{ ok: boolean; sizeKb?: number; error?: string }>),
   startPdfSync: () =>
@@ -59,6 +67,10 @@ export const api = {
     hasUserProfile?: boolean;
     hasTutorStyle?: boolean;
   }>),
+  listOllamaModels: (url?: string) =>
+    fetch(`/api/ai/ollama-models${url ? `?url=${encodeURIComponent(url)}` : ""}`).then(
+      json<{ ok: boolean; models: string[]; error?: string }>,
+    ),
   getAiPersonalization: () =>
     fetch("/api/ai/personalization").then(json<{ userProfile: string; tutorStyle: string }>),
   getAiConfig: () =>

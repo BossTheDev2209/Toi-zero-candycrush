@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Database } from "bun:sqlite";
+import type { AppConfig } from "../config";
 import { problemRepo } from "../db/repo/problems";
 import { runRepo } from "../db/repo/runs";
-import { runJudge } from "../judge/runJudge";
+import { runJudge, runCustom } from "../judge/runJudge";
 
 const RunZ = z.object({
   language: z.enum(["c", "cpp", "py"]),
@@ -11,7 +12,13 @@ const RunZ = z.object({
   scope: z.enum(["sample", "all"]).default("sample"),
 });
 
-export function runsRouter(db: Database) {
+const ExecZ = z.object({
+  language: z.enum(["c", "cpp", "py"]),
+  code: z.string(),
+  input: z.string().default(""),
+});
+
+export function runsRouter(db: Database, cfg?: AppConfig) {
   const r = new Hono();
   const pRepo = problemRepo(db);
   const rRepo = runRepo(db);
@@ -31,6 +38,7 @@ export function runsRouter(db: Database) {
       timeLimitMs: p.time_limit_ms,
       ioMode: p.io_mode,
       tests: judgeTests,
+      config: cfg?.compiler,
     });
 
     rRepo.create({
@@ -44,6 +52,24 @@ export function runsRouter(db: Database) {
       })),
     });
 
+    return c.json(result);
+  });
+
+  // Scratch terminal: compile + run the current editor code against a single
+  // hand-entered stdin, return raw output. Not graded, not persisted to history.
+  r.post("/:problemId/exec", async (c) => {
+    const id = Number(c.req.param("problemId"));
+    const p = pRepo.getById(id);
+    if (!p) return c.json({ error: "not found" }, 404);
+    const body = ExecZ.parse(await c.req.json());
+    const result = await runCustom({
+      language: body.language,
+      code: body.code,
+      timeLimitMs: p.time_limit_ms,
+      ioMode: p.io_mode,
+      stdin: body.input,
+      config: cfg?.compiler,
+    });
     return c.json(result);
   });
 

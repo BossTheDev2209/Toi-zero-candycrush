@@ -215,9 +215,27 @@ function AiSettings() {
   const [status, setStatus] = useState<{ provider: string; model: string; hasKey: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // Installed Ollama models, fetched from the server so the Model field can be a
+  // dropdown instead of a free-text box. Empty + an error string means Ollama
+  // wasn't reachable; the saved model stays selectable so Save never clobbers it.
+  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
+  const [ollamaModelsErr, setOllamaModelsErr] = useState<string | null>(null);
+  const [loadingModels, setLoadingModels] = useState(false);
 
   async function loadStatus() {
     try { setStatus(await api.getAiStatus()); } catch (e: any) { setErr(e?.message ?? String(e)); }
+  }
+  async function loadOllamaModels(url?: string) {
+    setLoadingModels(true); setOllamaModelsErr(null);
+    try {
+      const r = await api.listOllamaModels(url ?? ollamaUrl);
+      setOllamaModels(r.models);
+      if (!r.ok) setOllamaModelsErr(r.error ?? "Could not reach Ollama");
+    } catch (e: any) {
+      setOllamaModelsErr(e?.message ?? String(e));
+    } finally {
+      setLoadingModels(false);
+    }
   }
   /**
    * Pull every persisted AI config field so the form reflects what's actually
@@ -238,6 +256,7 @@ function AiSettings() {
       setMaxTokens(c.maxTokens);
       setUserProfile(c.userProfile);
       setTutorStyle(c.tutorStyle);
+      if (c.provider === "ollama") void loadOllamaModels(c.ollamaUrl);
     } catch (e: any) { setErr(e?.message ?? String(e)); }
   }
   useEffect(() => { void loadStatus(); void loadConfig(); }, []);
@@ -274,7 +293,7 @@ function AiSettings() {
     <div className="space-y-4">
       <label className="block">
         <div className={labelCls}>Provider</div>
-        <select className={inputCls} value={provider} onChange={(e) => setProvider(e.target.value as Provider)}>
+        <select className={inputCls} value={provider} onChange={(e) => { const v = e.target.value as Provider; setProvider(v); if (v === "ollama" && ollamaModels.length === 0) void loadOllamaModels(); }}>
           <option value="ollama">Ollama (local, free)</option>
           <option value="claude-cli">Claude Code CLI (your Max subscription)</option>
           <option value="anthropic">Anthropic Claude (API key)</option>
@@ -313,9 +332,35 @@ function AiSettings() {
       {provider === "ollama" && (
         <>
           <label className="block"><div className={labelCls}>Ollama base URL</div>
-            <input className={inputCls} value={ollamaUrl} onChange={(e) => setOllamaUrl(e.target.value)} /></label>
-          <label className="block"><div className={labelCls}>Model</div>
-            <input className={inputCls} value={ollamaModel} onChange={(e) => setOllamaModel(e.target.value)} /></label>
+            <input className={inputCls} value={ollamaUrl} onChange={(e) => setOllamaUrl(e.target.value)} onBlur={() => void loadOllamaModels()} /></label>
+          <label className="block">
+            <div className={labelCls}>Model</div>
+            <div className="flex items-center gap-2">
+              <select className={inputCls} value={ollamaModel} onChange={(e) => setOllamaModel(e.target.value)}>
+                {/* Always keep the saved model selectable, even if Ollama is down
+                    or the model was since removed, so Save can't silently drop it. */}
+                {Array.from(new Set([ollamaModel, ...ollamaModels].filter(Boolean))).map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void loadOllamaModels()}
+                disabled={loadingModels}
+                title="Re-fetch installed models from Ollama"
+                className="motion-press shrink-0 rounded-full border border-[var(--color-dust)] bg-white px-4 py-2.5 text-sm text-[var(--color-ink)] hover:border-[var(--color-ink)] disabled:opacity-50"
+              >
+                {loadingModels ? "…" : "Refresh"}
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-[var(--color-slate)]">
+              {ollamaModelsErr
+                ? `Couldn't reach Ollama (${ollamaModelsErr}). Showing the saved model — start Ollama, then Refresh to pick from installed ones.`
+                : ollamaModels.length
+                  ? `${ollamaModels.length} model${ollamaModels.length === 1 ? "" : "s"} installed (from the server above).`
+                  : "Pulled from the Ollama server above. Refresh after pulling a new model."}
+            </p>
+          </label>
           <label className="block"><div className={labelCls}>Keep model in RAM</div>
             <input className={inputCls} value={ollamaKeepAlive} onChange={(e) => setOllamaKeepAlive(e.target.value)} placeholder="0" />
             <p className="mt-1.5 text-xs text-[var(--color-slate)]">

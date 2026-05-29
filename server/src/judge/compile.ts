@@ -1,7 +1,21 @@
 import { spawn } from "node:child_process";
 import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, dirname, delimiter } from "node:path";
 import type { Language, CompilerConfig } from "./verdicts";
+
+/**
+ * When `bin` is an absolute/relative path (not a bare command name), prepend
+ * its directory to PATH for the spawned process. MSYS2's g++/gcc are driver
+ * programs that shell out to cc1plus/as/ld, and those subprocesses need the
+ * toolchain's bin dir on PATH to resolve their DLLs — otherwise the compile
+ * fails silently (exit 1, no stderr). Deriving the dir from `bin` keeps this
+ * portable: no hard-coded C:\msys64, works for any configured toolchain.
+ */
+function envForBin(bin: string): NodeJS.ProcessEnv {
+  if (!bin.includes("/") && !bin.includes("\\")) return process.env;
+  const dir = dirname(bin);
+  return { ...process.env, PATH: `${dir}${delimiter}${process.env.PATH ?? ""}` };
+}
 
 export interface CompileInput {
   language: Language;
@@ -40,7 +54,7 @@ export async function compile(input: CompileInput): Promise<CompileOk | CompileF
   const { bin, flags } = cfg[input.language];
   if (input.language === "py") {
     return new Promise((resolve) => {
-      const proc = spawn(bin, ["-m", "py_compile", srcPath], { stdio: ["ignore", "ignore", "pipe"] });
+      const proc = spawn(bin, ["-m", "py_compile", srcPath], { stdio: ["ignore", "ignore", "pipe"], env: envForBin(bin) });
       let stderr = "";
       proc.stderr.on("data", (b) => { stderr += b.toString(); });
       proc.on("error", (err) => {
@@ -56,7 +70,7 @@ export async function compile(input: CompileInput): Promise<CompileOk | CompileF
   const args = [...flags, srcPath, "-o", binaryPath];
 
   return new Promise((resolve) => {
-    const proc = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"] });
+    const proc = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"], env: envForBin(bin) });
     let stderr = "";
     proc.stderr.on("data", (b) => { stderr += b.toString(); });
     proc.on("error", (err) => {

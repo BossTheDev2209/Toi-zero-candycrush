@@ -88,6 +88,26 @@ export function aiRouter(db: Database, cfg: AppConfig) {
     hasOpenaiKey: Boolean(cfg.ai?.openaiApiKey),
   }));
 
+  /**
+   * List models installed on the Ollama server so Settings can offer them as a
+   * dropdown instead of a free-text box. Proxied through the API (rather than a
+   * direct browser fetch to Ollama) so it works regardless of Ollama's CORS
+   * config. Never throws: on a connection failure it returns an empty list plus
+   * the error string, and the UI falls back to keeping the current model.
+   */
+  r.get("/ollama-models", async (c) => {
+    const url = (c.req.query("url") || cfg.ai?.ollamaUrl || "http://localhost:11434").replace(/\/$/, "");
+    try {
+      const res = await fetch(`${url}/api/tags`);
+      if (!res.ok) return c.json({ ok: false, models: [], error: `Ollama HTTP ${res.status}` });
+      const data = (await res.json()) as { models?: { name: string }[] };
+      const models = (data.models ?? []).map((m) => m.name).filter(Boolean).sort();
+      return c.json({ ok: true, models });
+    } catch (e: any) {
+      return c.json({ ok: false, models: [], error: e?.message ?? String(e) });
+    }
+  });
+
   r.get("/history/:problemId", (c) => {
     const id = Number(c.req.param("problemId"));
     return c.json({ messages: mRepo.listForProblem(id) });

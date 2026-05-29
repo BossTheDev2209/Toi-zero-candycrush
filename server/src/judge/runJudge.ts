@@ -2,7 +2,7 @@ import { compile } from "./compile";
 import { execute } from "./execute";
 import { compareOutputs } from "./compare";
 import { makeWorkdir, cleanupWorkdir } from "./workdir";
-import type { Language, Verdict } from "./verdicts";
+import type { Language, Verdict, CompilerConfig } from "./verdicts";
 import { writeFile, readFile, rm } from "node:fs/promises";
 import { join as joinPath } from "node:path";
 
@@ -19,6 +19,8 @@ export interface JudgeInput {
   timeLimitMs: number;
   ioMode: string; // 'stdio' or 'file:<base>'
   tests: JudgeTest[];
+  /** Per-language compiler overrides (bin path + flags) from settings.json. */
+  config?: Partial<Record<Language, CompilerConfig>>;
 }
 
 export interface PerTestOutcome {
@@ -55,10 +57,80 @@ function scoreSubtasks(perTest: PerTestOutcome[]): Record<string, { passed: numb
   return out;
 }
 
+export interface CustomRunResult {
+  /** false only when compilation failed; a non-zero exit still counts as "ran". */
+  ok: boolean;
+  compileStderr?: string;
+  stdout: string;
+  stderr: string;
+  exit: number | null;
+  runtimeMs: number;
+  timedOut: boolean;
+}
+
+/**
+ * Compile once and run against a single user-supplied stdin, returning the raw
+ * stdout/stderr instead of a verdict. Powers the scratch terminal in the
+ * workspace, where the point is to eyeball output for a hand-entered case
+ * rather than grade it against an expected file.
+ */
+export async function runCustom(input: {
+  language: Language;
+  code: string;
+  timeLimitMs: number;
+  ioMode: string;
+  stdin: string;
+  config?: Partial<Record<Language, CompilerConfig>>;
+}): Promise<CustomRunResult> {
+  const wd = await makeWorkdir();
+  try {
+    const c = await compile({ language: input.language, code: input.code, workdir: wd, config: input.config });
+    if (!c.ok) {
+      return { ok: false, compileStderr: c.stderr, stdout: "", stderr: "", exit: null, runtimeMs: 0, timedOut: false };
+    }
+
+    let stdin = input.stdin;
+    let outFile: string | null = null;
+    if (input.ioMode.startsWith("file:")) {
+      const base = input.ioMode.slice("file:".length);
+      const inFile = joinPath(wd, `${base}.in`);
+      outFile = joinPath(wd, `${base}.out`);
+      await writeFile(inFile, input.stdin, "utf8");
+      await rm(outFile, { force: true });
+      stdin = "";
+    }
+
+    const r = await execute({
+      binaryPath: c.binaryPath,
+      args: c.args,
+      stdin,
+      timeoutMs: input.timeLimitMs,
+      workdir: wd,
+    });
+
+    let stdout = r.stdout;
+    if (outFile) {
+      try { stdout = await readFile(outFile, "utf8"); }
+      catch { stdout = ""; }
+    }
+
+    return {
+      ok: true,
+      stdout: stdout.slice(0, 100_000),
+      stderr: r.stderr.slice(0, 8000),
+      exit: r.exit,
+      runtimeMs: Math.round(r.runtimeMs),
+      timedOut: r.timedOut,
+    };
+  } finally {
+    await cleanupWorkdir(wd);
+  }
+}
+
 export async function runJudge(input: JudgeInput): Promise<JudgeResult> {
   const wd = await makeWorkdir();
   try {
-    const c = await compile({ language: input.language, code: input.code, workdir: wd });
+    const c = await compile({ language: input.language, code: input.code, workdir: wd, config: input.config });
     if (!c.ok) {
       return { verdict: "CE", totalRuntimeMs: 0, perTest: [], compileStderr: c.stderr };
     }
