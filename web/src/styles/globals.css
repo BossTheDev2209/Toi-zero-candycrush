@@ -182,6 +182,146 @@ html.dark .bg-white { background-color: var(--color-white) !important; }
 .hljs-title.function_,
 .hljs-function .hljs-title { color: var(--color-ink); font-weight: 600; }
 
+/* ---------------------------------------------------------------------------
+ * Markdown body (AI Help replies, and anywhere MarkdownRender is used).
+ *
+ * The project has no Tailwind typography plugin, so styling is explicit here.
+ * Goal: dense-but-legible reading at panel width. Tight vertical rhythm, clear
+ * heading hierarchy (well below the global 64px h1), tokenized color so blocks
+ * read at a glance — headings in ink, links in link-blue, inline code tinted,
+ * tables/quotes with full 1px borders (no side-stripe accents).
+ * ------------------------------------------------------------------------- */
+.md-body {
+  color: var(--color-ink);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.md-body > :first-child { margin-top: 0; }
+.md-body > :last-child { margin-bottom: 0; }
+
+.md-body p { margin: 0.6em 0; }
+
+.md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+  color: var(--color-ink);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 1.1em 0 0.5em;
+}
+.md-body h1 { font-size: 1.5em; }
+.md-body h2 {
+  font-size: 1.28em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--color-dust);
+}
+.md-body h3 { font-size: 1.12em; }
+.md-body h4 { font-size: 1em; color: var(--color-graphite); }
+.md-body h5, .md-body h6 {
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-slate);
+}
+
+.md-body a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.md-body a:hover { text-decoration-thickness: 2px; }
+
+.md-body strong { font-weight: 700; color: var(--color-ink); }
+.md-body em { font-style: italic; }
+.md-body del { color: var(--color-slate); }
+.md-body small { font-size: 0.85em; color: var(--color-slate); }
+
+.md-body ul, .md-body ol { margin: 0.6em 0; padding-left: 1.4em; }
+.md-body li { margin: 0.28em 0; }
+.md-body li::marker { color: var(--color-signal); }
+.md-body ol > li::marker { color: var(--color-slate); font-variant-numeric: tabular-nums; }
+.md-body li > ul, .md-body li > ol { margin: 0.2em 0; }
+
+/* Task-list checkboxes from remark-gfm. */
+.md-body li input[type="checkbox"] { margin-right: 0.5em; accent-color: var(--color-signal); }
+.md-body li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.2em; }
+
+/* Inline code: tinted chip so it pops out of prose without shouting. Code inside
+ * a <pre> (fenced blocks) opts back out — those are handled by the pre rules. */
+.md-body code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  background: color-mix(in srgb, var(--color-link) 11%, var(--color-bone));
+  color: var(--color-ink);
+  border: 1px solid color-mix(in srgb, var(--color-link) 16%, var(--color-dust));
+  border-radius: 6px;
+  padding: 0.08em 0.36em;
+  white-space: break-spaces;
+}
+.md-body pre {
+  margin: 0.75em 0;
+  background: var(--color-bone);
+  border: 1px solid var(--color-dust);
+  border-radius: 16px;
+  padding: 0.9em 1em;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.md-body pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  white-space: pre;
+}
+
+/* Blockquote: soft tinted surface with a full hairline border, not a side
+ * stripe. Reads as "aside" while staying inside the design vocabulary. */
+.md-body blockquote {
+  margin: 0.75em 0;
+  padding: 0.55em 0.9em;
+  background: var(--color-bone);
+  border: 1px solid var(--color-dust);
+  border-radius: 12px;
+  color: var(--color-graphite);
+}
+.md-body blockquote p { margin: 0.3em 0; }
+
+.md-body hr {
+  border: 0;
+  border-top: 1px solid var(--color-dust);
+  margin: 1.2em 0;
+}
+
+/* Tables from remark-gfm. Full borders, tinted header, zebra rows. */
+.md-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  font-size: 0.92em;
+  display: block;
+  overflow-x: auto;
+}
+.md-body th, .md-body td {
+  border: 1px solid var(--color-dust);
+  padding: 0.4em 0.65em;
+  text-align: left;
+  vertical-align: top;
+}
+.md-body th {
+  background: var(--color-whisper);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.md-body tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--color-bone) 60%, transparent);
+}
+
+.md-body img { max-width: 100%; border-radius: 10px; }
+
 /* AI Help typing indicator — three dots bouncing in sequence while the model generates. */
 @keyframes ai-typing-dot {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
@@ -629,6 +769,49 @@ html.dark .uncounted-badge {
 
 .ai-help-panel {
   animation: ai-panel-in 240ms var(--motion-enter) both;
+}
+
+/* Floating window variant pops in with a subtle scale instead of a slide. */
+.ai-help-float {
+  animation: ai-float-in 200ms var(--motion-enter) both;
+}
+@keyframes ai-float-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ai-help-bubble {
+  transition: transform 180ms var(--motion-smooth), box-shadow 180ms var(--motion-smooth);
+  animation: ai-float-in 200ms var(--motion-enter) both;
+}
+.ai-help-bubble:hover { transform: translateY(-2px); box-shadow: 0 16px 38px rgba(0, 0, 0, 0.24); }
+.ai-help-bubble:active { transform: translateY(0) scale(0.96); }
+
+/* Blinking block cursor at the tail of a streaming reply. */
+.ai-stream-caret {
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: var(--color-signal);
+  animation: ai-caret-blink 1s steps(2, start) infinite;
+}
+@keyframes ai-caret-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Pulsing dot on the live "Thinking…" header. */
+.ai-think-pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--color-info);
+  animation: ai-think-pulse 1.1s var(--motion-smooth) infinite;
+}
+@keyframes ai-think-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 .ai-message {

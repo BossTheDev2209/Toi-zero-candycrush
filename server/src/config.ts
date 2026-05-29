@@ -45,6 +45,24 @@ export interface AppConfig {
     /** Model name passed to `claude --print --model <m>`. e.g. "sonnet", "opus", "claude-sonnet-4-5". */
     claudeCliModel?: string;
     maxTokens?: number;
+    /**
+     * Whether to ask reason-capable models to emit their chain-of-thought.
+     * Drives Ollama's `think` flag. Default true. Turn off to skip reasoning
+     * entirely (faster first token, no "Reasoning" block).
+     */
+    thinkingEnabled?: boolean;
+    /**
+     * Language the tutor should reply in. "auto" mirrors the student's question
+     * language (default); "th" forces Thai; "en" forces English. Injected into
+     * the system prompt.
+     */
+    responseLanguage?: "auto" | "th" | "en";
+    /**
+     * Ollama context window in tokens (`options.num_ctx`). Larger = more of the
+     * conversation/code the model can see, at the cost of RAM. Undefined leaves
+     * Ollama's per-model default. Typical values: 4096–32768 on consumer GPUs.
+     */
+    ollamaNumCtx?: number;
     /** Free-form student bio. Injected into the system prompt so the tutor adapts. */
     userProfile?: string;
     /** Free-form style preferences (language mix, hint depth, etc). Injected verbatim. */

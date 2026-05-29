@@ -78,6 +78,18 @@ describe("buildSystemPrompt", () => {
     expect(prompt).not.toContain("Style preferences");
   });
 
+  test("pins the reply language when responseLanguage is set, else mirrors the question", () => {
+    const base = {
+      language: "cpp" as const, slug: "A1-001", title: "x", statementMd: "",
+      code: "", verdict: null, runtimeMs: null, diff: null, stderr: null, forceFullSolution: false,
+    };
+    expect(buildSystemPrompt({ ...base, responseLanguage: "th" })).toContain("Always reply in Thai");
+    expect(buildSystemPrompt({ ...base, responseLanguage: "en" })).toContain("Always reply in English");
+    expect(buildSystemPrompt({ ...base, responseLanguage: "auto" })).toContain("student's question's language");
+    // Omitted = auto behaviour (back-compat).
+    expect(buildSystemPrompt(base)).toContain("student's question's language");
+  });
+
   test("truncates statement excerpts longer than 2KB", () => {
     const long = "x".repeat(5000);
     const prompt = buildSystemPrompt({

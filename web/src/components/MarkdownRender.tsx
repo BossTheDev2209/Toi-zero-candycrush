@@ -66,7 +66,7 @@ function CodeBlockPre({ children, ...rest }: { children?: ReactNode } & React.HT
  */
 export function MarkdownRender({ children }: { children: string }) {
   return (
-    <div className="prose prose-stone max-w-none text-[var(--color-ink)] [&_pre]:bg-[var(--color-bone)] [&_pre]:rounded-2xl [&_pre]:p-4 [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-[13px]">
+    <div className="md-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[[rehypeHighlight, { languages, detect: true, ignoreMissing: true }]]}

@@ -5,6 +5,81 @@ async function json<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface AiStreamHandlers {
+  /** Fired for each streamed chunk. Either field may be present. */
+  onDelta?: (d: { content?: string; thinking?: string }) => void;
+  /** Abort the underlying request (in addition to the server-side /cancel). */
+  signal?: AbortSignal;
+}
+
+export interface AiStreamResult {
+  ok: boolean;
+  cancelled?: boolean;
+  text?: string;
+  thinking?: string;
+  provider?: string;
+  model?: string;
+  tokensIn?: number;
+  tokensOut?: number;
+  durationMs?: number;
+  error?: string;
+}
+
+/**
+ * POST a request whose response is an SSE stream of `delta` / `done` / `error`
+ * events, forwarding deltas live and resolving with the terminal `done`/`error`
+ * payload. Used by AI Help so the reply (and reasoning) render as they generate.
+ */
+async function streamAi(url: string, body: unknown, handlers: AiStreamHandlers): Promise<AiStreamResult> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal: handlers.signal,
+  });
+  if (!res.ok || !res.body) {
+    return { ok: false, error: `${res.status} ${await res.text().catch(() => "")}` };
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let final: AiStreamResult = { ok: false, error: "stream ended without a result" };
+
+  const handleEvent = (raw: string) => {
+    // One SSE event block: `event: <name>` + one or more `data: <json>` lines.
+    let event = "message";
+    const dataLines: string[] = [];
+    for (const line of raw.split("\n")) {
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+    }
+    if (dataLines.length === 0) return;
+    let payload: any;
+    try { payload = JSON.parse(dataLines.join("\n")); } catch { return; }
+    if (event === "delta") handlers.onDelta?.(payload);
+    else if (event === "done") final = payload as AiStreamResult;
+    else if (event === "error") final = { ok: false, error: payload?.error ?? "stream error", provider: payload?.provider, model: payload?.model };
+  };
+
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buffer.indexOf("\n\n")) >= 0) {
+        handleEvent(buffer.slice(0, sep));
+        buffer = buffer.slice(sep + 2);
+      }
+    }
+    if (buffer.trim()) handleEvent(buffer);
+  } catch (e: any) {
+    if (e?.name === "AbortError") return { ...final, cancelled: true };
+    return { ok: false, error: e?.message ?? String(e) };
+  }
+  return final;
+}
+
 export const api = {
   listProblems: () => fetch("/api/problems").then(json<Problem[]>),
   getProblem: (id: number) => fetch(`/api/problems/${id}`).then(json<ProblemDetail>),
@@ -66,6 +141,8 @@ export const api = {
     hasKey: boolean;
     hasUserProfile?: boolean;
     hasTutorStyle?: boolean;
+    thinkingEnabled?: boolean;
+    responseLanguage?: "auto" | "th" | "en";
   }>),
   listOllamaModels: (url?: string) =>
     fetch(`/api/ai/ollama-models${url ? `?url=${encodeURIComponent(url)}` : ""}`).then(
@@ -83,6 +160,9 @@ export const api = {
       ollamaKeepAlive: string;
       claudeCliModel: string;
       maxTokens: number;
+      thinkingEnabled: boolean;
+      responseLanguage: "auto" | "th" | "en";
+      ollamaNumCtx: number;
       userProfile: string;
       tutorStyle: string;
       hasAnthropicKey: boolean;
@@ -99,10 +179,17 @@ export const api = {
     ollamaKeepAlive?: string;
     claudeCliModel?: string;
     maxTokens?: number;
+    thinkingEnabled?: boolean;
+    responseLanguage?: "auto" | "th" | "en";
+    ollamaNumCtx?: number;
     userProfile?: string;
     tutorStyle?: string;
   }) =>
     fetch("/api/ai/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; provider: string }>),
+  saveQuickAiSettings: (body: { thinkingEnabled?: boolean; responseLanguage?: "auto" | "th" | "en" }) =>
+    fetch("/api/ai/quick-settings", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(
+      json<{ ok: boolean; thinkingEnabled: boolean; responseLanguage: "auto" | "th" | "en" }>,
+    ),
   getAiHistory: (problemId: number) =>
     fetch(`/api/ai/history/${problemId}`).then(json<{ messages: { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; thinking: string | null; duration_ms: number | null; created_at: string }[] }>),
   clearAiHistory: (problemId: number) =>
@@ -116,7 +203,11 @@ export const api = {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ content }),
-    }).then(json<{ ok: boolean; deleted?: number; error?: string; messages?: { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; created_at: string }[] }>),
+    }).then(json<{ ok: boolean; deleted?: number; error?: string; messages?: { id: number; role: "user" | "assistant"; content: string; tokens_in: number | null; tokens_out: number | null; thinking: string | null; duration_ms: number | null; created_at: string }[] }>),
   regenerateAi: (body: { problemId: number; forceFullSolution?: boolean }) =>
     fetch("/api/ai/regenerate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(json<{ ok: boolean; cancelled?: boolean; text?: string; provider?: string; model?: string; tokensIn?: number; tokensOut?: number; error?: string }>),
+  askAiStream: (body: { problemId: number; message: string; forceFullSolution?: boolean }, handlers: AiStreamHandlers = {}) =>
+    streamAi("/api/ai/ask-stream", body, handlers),
+  regenerateAiStream: (body: { problemId: number; forceFullSolution?: boolean }, handlers: AiStreamHandlers = {}) =>
+    streamAi("/api/ai/regenerate-stream", body, handlers),
 };

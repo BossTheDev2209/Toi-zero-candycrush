@@ -6,12 +6,25 @@ import { askClaudeCli } from "./claudeCli";
 
 export type ProviderName = "anthropic" | "openai" | "ollama" | "claude-cli";
 
+/** Incremental tokens as they stream in. Either field may be present per call. */
+export interface AiStreamDelta {
+  content?: string;
+  thinking?: string;
+}
+
 export interface AiAskInput {
   systemPrompt: string;
   messages: { role: "user" | "assistant"; content: string }[];
   maxTokens: number;
   /** When aborted, the provider should stop generation ASAP and return whatever partial text it has. */
   signal?: AbortSignal;
+  /**
+   * Called for each streamed chunk as it arrives. When provided, providers that
+   * support streaming forward live deltas so the UI can render the reply (and
+   * reasoning) as it generates. Providers that can't stream simply never call it
+   * and return the full result at the end — the caller handles both.
+   */
+  onDelta?: (d: AiStreamDelta) => void;
 }
 
 export interface AiAskResult {
@@ -52,6 +65,7 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
         messages: input.messages,
         maxTokens: input.maxTokens ?? maxTokens,
         signal: input.signal,
+        onDelta: input.onDelta,
       }),
     };
   }
@@ -67,6 +81,7 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
         messages: input.messages,
         maxTokens: input.maxTokens ?? maxTokens,
         signal: input.signal,
+        onDelta: input.onDelta,
       }),
     };
   }
@@ -95,6 +110,9 @@ export function buildProvider(ai: AppConfig["ai"]): AiProvider {
       maxTokens: input.maxTokens ?? maxTokens,
       signal: input.signal,
       keepAlive: ai.ollamaKeepAlive ?? "0",
+      think: ai.thinkingEnabled ?? true,
+      numCtx: ai.ollamaNumCtx,
+      onDelta: input.onDelta,
     }),
   };
 }

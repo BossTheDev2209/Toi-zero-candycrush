@@ -140,7 +140,7 @@ export function SettingsPage() {
         <CountsBookmarklet />
       </section>
 
-      <section className="motion-surface mt-8 rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-8">
+      <section id="ai-settings" className="motion-surface mt-8 scroll-mt-28 rounded-[40px] border border-[var(--color-dust)] bg-[var(--color-lifted)] p-8">
         <div className="text-[12px] font-bold tracking-[0.04em] uppercase text-[var(--color-slate)] mb-3">AI assistant</div>
         <AiSettings />
       </section>
@@ -210,6 +210,9 @@ function AiSettings() {
   const [openaiModel, setOpenaiModel] = useState("gpt-4o-mini");
   const [claudeCliModel, setClaudeCliModel] = useState("sonnet");
   const [maxTokens, setMaxTokens] = useState(1024);
+  const [thinkingEnabled, setThinkingEnabled] = useState(true);
+  const [responseLanguage, setResponseLanguage] = useState<"auto" | "th" | "en">("auto");
+  const [ollamaNumCtx, setOllamaNumCtx] = useState(0);
   const [userProfile, setUserProfile] = useState("");
   const [tutorStyle, setTutorStyle] = useState("");
   const [status, setStatus] = useState<{ provider: string; model: string; hasKey: boolean } | null>(null);
@@ -254,6 +257,9 @@ function AiSettings() {
       setOllamaKeepAlive(c.ollamaKeepAlive);
       setClaudeCliModel(c.claudeCliModel);
       setMaxTokens(c.maxTokens);
+      setThinkingEnabled(c.thinkingEnabled);
+      setResponseLanguage(c.responseLanguage);
+      setOllamaNumCtx(c.ollamaNumCtx);
       setUserProfile(c.userProfile);
       setTutorStyle(c.tutorStyle);
       if (c.provider === "ollama") void loadOllamaModels(c.ollamaUrl);
@@ -275,6 +281,9 @@ function AiSettings() {
         ollamaKeepAlive,
         claudeCliModel,
         maxTokens,
+        thinkingEnabled,
+        responseLanguage,
+        ollamaNumCtx: ollamaNumCtx || undefined,
         userProfile,
         tutorStyle,
       });
@@ -369,11 +378,42 @@ function AiSettings() {
               <code className="font-mono text-[11px]">-1</code> = forever.
             </p>
           </label>
+          <ContextLengthSlider value={ollamaNumCtx} onChange={setOllamaNumCtx} />
         </>
       )}
 
       <label className="block"><div className={labelCls}>Max tokens per reply</div>
         <input type="number" className={inputCls} value={maxTokens} onChange={(e) => setMaxTokens(Number(e.target.value))} /></label>
+
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className={labelCls}>Reasoning (thinking)</div>
+          <p className="text-xs text-[var(--color-slate)] max-w-[42ch]">
+            {thinkingEnabled
+              ? "On — reason-capable models stream their chain-of-thought into a collapsible block."
+              : "Off — skip the reasoning trace for a faster first token."}
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={thinkingEnabled}
+          aria-label="Toggle reasoning"
+          onClick={() => setThinkingEnabled((v) => !v)}
+          className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors ${thinkingEnabled ? "bg-[var(--color-ink)]" : "bg-[var(--color-dust)]"}`}
+        >
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${thinkingEnabled ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+        </button>
+      </div>
+
+      <label className="block"><div className={labelCls}>Reply language</div>
+        <select className={inputCls} value={responseLanguage} onChange={(e) => setResponseLanguage(e.target.value as "auto" | "th" | "en")}>
+          <option value="auto">Auto — match my question's language</option>
+          <option value="th">ไทย — always reply in Thai</option>
+          <option value="en">English — always reply in English</option>
+        </select>
+        <p className="mt-1.5 text-xs text-[var(--color-slate)]">Also switchable on the fly from the AI Help panel toolbar.</p>
+      </label>
 
       <div className="border-t border-[var(--color-dust)] pt-5 mt-5">
         <div className="mb-3">
@@ -419,5 +459,40 @@ function AiSettings() {
         </div>
       )}
     </div>
+  );
+}
+
+// Snap points mirror Ollama's own context-length slider: model default, then
+// powers-of-two from 4k up to 256k tokens.
+const CTX_STEPS = [0, 4096, 8192, 16384, 32768, 65536, 131072, 262144];
+const ctxLabel = (n: number) => (n === 0 ? "Model default" : `${Math.round(n / 1024)}k`);
+
+function ContextLengthSlider({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  // Map the saved token count to the nearest snap index (handles legacy custom values).
+  const idx = CTX_STEPS.reduce(
+    (best, v, i) => (Math.abs(v - value) < Math.abs(CTX_STEPS[best]! - value) ? i : best),
+    0,
+  );
+  return (
+    <label className="block">
+      <div className="text-[12px] font-bold tracking-[0.04em] uppercase text-[var(--color-slate)] mb-1.5">Context length (num_ctx)</div>
+      <input
+        type="range"
+        min={0}
+        max={CTX_STEPS.length - 1}
+        step={1}
+        value={idx}
+        onChange={(e) => onChange(CTX_STEPS[Number(e.target.value)]!)}
+        className="w-full cursor-pointer accent-[var(--color-signal)]"
+        aria-label="Context length"
+      />
+      <div className="mt-1 flex justify-between text-[10px] text-[var(--color-slate)] tabular-nums">
+        {CTX_STEPS.map((n, i) => <span key={i}>{i === 0 ? "Def" : ctxLabel(n)}</span>)}
+      </div>
+      <p className="mt-1.5 text-xs text-[var(--color-slate)]">
+        Current: <strong className="text-[var(--color-graphite)]">{ctxLabel(value)}</strong>. Larger windows let the model see
+        more of your code and chat history, at the cost of more RAM/VRAM. "Model default" leaves Ollama's built-in size.
+      </p>
+    </label>
   );
 }

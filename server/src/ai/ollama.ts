@@ -1,4 +1,4 @@
-import type { AiAskResult } from "./provider";
+import type { AiAskResult, AiStreamDelta } from "./provider";
 
 /**
  * Coerce a `keep_alive` setting into the shape Ollama actually accepts.
@@ -28,6 +28,21 @@ export interface AskOllamaInput {
    * 5 minutes. "-1" forever. Default in this codebase: "0".
    */
   keepAlive?: string;
+  /**
+   * Ask the model to emit its chain-of-thought separately (`think: true`).
+   * Reason-capable models (qwen3, deepseek-r1, gpt-oss) split output into
+   * `message.thinking` + `message.content`. Default true. Non-reasoning models
+   * ignore it. Set false to skip reasoning entirely.
+   */
+  think?: boolean;
+  /** Ollama `options.num_ctx` — context window size in tokens. Omitted = model default. */
+  numCtx?: number;
+  /**
+   * Called for every streamed chunk as it arrives, so the UI can render the
+   * reply (and reasoning) live. Aggregation still happens internally; the final
+   * result is returned as before. Fired only on the streaming NDJSON path.
+   */
+  onDelta?: (d: AiStreamDelta) => void;
 }
 
 /**
@@ -55,8 +70,13 @@ export async function askOllama(input: AskOllamaInput): Promise<AiAskResult> {
   const body = {
     model: input.model,
     stream: true,
-    think: true,
-    options: { num_predict: input.maxTokens },
+    think: input.think ?? true,
+    options: {
+      num_predict: input.maxTokens,
+      // Only send num_ctx when explicitly set, so we don't override a model's
+      // own (possibly larger) default with a smaller number unintentionally.
+      ...(input.numCtx && input.numCtx > 0 ? { num_ctx: input.numCtx } : {}),
+    },
     // Ollama parses `keep_alive` two ways: a JSON number = seconds (0 unloads
     // immediately, -1 keeps forever), or a JSON string with a Go time-unit
     // suffix ("5m", "1h"). Bare numeric strings like "0" / "-1" go through
@@ -109,8 +129,14 @@ export async function askOllama(input: AskOllamaInput): Promise<AiAskResult> {
               eval_count?: number;
               total_duration?: number;
             };
-            if (typeof obj.message?.content === "string") accumulated += obj.message.content;
-            if (typeof obj.message?.thinking === "string") accumulatedThinking += obj.message.thinking;
+            if (typeof obj.message?.content === "string") {
+              accumulated += obj.message.content;
+              if (obj.message.content) input.onDelta?.({ content: obj.message.content });
+            }
+            if (typeof obj.message?.thinking === "string") {
+              accumulatedThinking += obj.message.thinking;
+              if (obj.message.thinking) input.onDelta?.({ thinking: obj.message.thinking });
+            }
             if (typeof obj.prompt_eval_count === "number") tokensIn = obj.prompt_eval_count;
             if (typeof obj.eval_count === "number") tokensOut = obj.eval_count;
             if (typeof obj.total_duration === "number") totalDurationNs = obj.total_duration;

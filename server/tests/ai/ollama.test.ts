@@ -79,6 +79,37 @@ describe("askOllama", () => {
     expect(JSON.parse(calls[0]!.init.body as string).keep_alive).toBe("5m");
   });
 
+  test("sends the think flag and num_ctx option, and fires onDelta per streamed chunk", async () => {
+    const deltas: { content?: string; thinking?: string }[] = [];
+    const result = await askOllama({
+      baseUrl: "http://localhost:11434",
+      model: "qwen3:8b",
+      systemPrompt: "You are a tutor.",
+      messages: [{ role: "user", content: "help" }],
+      maxTokens: 256,
+      think: false,
+      numCtx: 8192,
+      onDelta: (d) => deltas.push(d),
+    });
+    expect(result.ok).toBe(true);
+    const body = JSON.parse(calls[0]!.init.body as string);
+    expect(body.think).toBe(false);
+    expect(body.options.num_predict).toBe(256);
+    expect(body.options.num_ctx).toBe(8192);
+    // The mock emits three content frames; each should produce one delta.
+    expect(deltas.filter((d) => d.content).length).toBe(3);
+  });
+
+  test("defaults think to true and omits num_ctx when unset", async () => {
+    await askOllama({
+      baseUrl: "http://localhost:11434",
+      model: "x", systemPrompt: "x", messages: [{ role: "user", content: "go" }], maxTokens: 1,
+    });
+    const body = JSON.parse(calls[0]!.init.body as string);
+    expect(body.think).toBe(true);
+    expect("num_ctx" in body.options).toBe(false);
+  });
+
   test("parseKeepAlive maps user input to the Ollama-accepted JSON type", () => {
     expect(parseKeepAlive("0")).toBe(0);
     expect(parseKeepAlive("-1")).toBe(-1);

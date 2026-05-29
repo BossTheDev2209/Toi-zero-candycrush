@@ -13,6 +13,8 @@ export interface SystemPromptContext {
   userProfile?: string | null;
   /** Free-form style preferences (language mix, hint depth, tone). Injected verbatim. */
   tutorStyle?: string | null;
+  /** Forced reply language. "auto" (default) mirrors the question; "th"/"en" pin it. */
+  responseLanguage?: "auto" | "th" | "en" | null;
 }
 
 const MAX_STATEMENT = 2048;
@@ -65,6 +67,13 @@ export function buildSystemPrompt(ctx: SystemPromptContext): string {
     );
   }
 
+  const langLine =
+    ctx.responseLanguage === "th"
+      ? "Always reply in Thai (ภาษาไทย), regardless of the question's language. Use English only for code, identifiers, and standard CS/math terms. Be concise."
+      : ctx.responseLanguage === "en"
+        ? "Always reply in English, regardless of the question's language. Be concise."
+        : "Reply in the student's question's language (Thai or English). Be concise.";
+
   lines.push(
     "",
     `Language: ${ctx.language}`,
@@ -80,7 +89,7 @@ export function buildSystemPrompt(ctx: SystemPromptContext): string {
     "",
     verdictNote(ctx),
     "",
-    "Reply in the student's question's language (Thai or English). Be concise.",
+    langLine,
   );
 
   return lines.join("\n");

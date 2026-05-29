@@ -27,8 +27,21 @@ const AiSettingsZ = z.object({
   ollamaKeepAlive: z.string().optional(),
   claudeCliModel: z.string().optional(),
   maxTokens: z.number().int().positive().optional(),
+  thinkingEnabled: z.boolean().optional(),
+  responseLanguage: z.enum(["auto", "th", "en"]).optional(),
+  ollamaNumCtx: z.number().int().positive().optional(),
   userProfile: z.string().optional(),
   tutorStyle: z.string().optional(),
+});
+
+/**
+ * Lightweight in-panel toggles. The AI Help panel flips thinking on/off and
+ * switches reply language without opening the full Settings form, so this
+ * persists just those fields. All optional — only the keys present are written.
+ */
+const QuickSettingsZ = z.object({
+  thinkingEnabled: z.boolean().optional(),
+  responseLanguage: z.enum(["auto", "th", "en"]).optional(),
 });
 
 export function aiRouter(db: Database, cfg: AppConfig) {
@@ -57,6 +70,9 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       hasKey,
       hasUserProfile: Boolean(cfg.ai?.userProfile?.trim()),
       hasTutorStyle: Boolean(cfg.ai?.tutorStyle?.trim()),
+      // Surfaced so the panel's quick controls can reflect the saved state.
+      thinkingEnabled: cfg.ai?.thinkingEnabled ?? true,
+      responseLanguage: cfg.ai?.responseLanguage ?? "auto",
     });
   });
 
@@ -82,6 +98,9 @@ export function aiRouter(db: Database, cfg: AppConfig) {
     ollamaKeepAlive: cfg.ai?.ollamaKeepAlive ?? "0",
     claudeCliModel: cfg.ai?.claudeCliModel ?? "sonnet",
     maxTokens: cfg.ai?.maxTokens ?? 1024,
+    thinkingEnabled: cfg.ai?.thinkingEnabled ?? true,
+    responseLanguage: cfg.ai?.responseLanguage ?? "auto",
+    ollamaNumCtx: cfg.ai?.ollamaNumCtx ?? 0,
     userProfile: cfg.ai?.userProfile ?? "",
     tutorStyle: cfg.ai?.tutorStyle ?? "",
     hasAnthropicKey: Boolean(cfg.ai?.anthropicApiKey),
@@ -187,6 +206,7 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       forceFullSolution: body.forceFullSolution,
       userProfile: cfg.ai?.userProfile,
       tutorStyle: cfg.ai?.tutorStyle,
+      responseLanguage: cfg.ai?.responseLanguage ?? "auto",
     });
 
     const history = mRepo.listForProblem(body.problemId).map((m) => ({
@@ -337,6 +357,7 @@ export function aiRouter(db: Database, cfg: AppConfig) {
       forceFullSolution: body.forceFullSolution,
       userProfile: cfg.ai?.userProfile,
       tutorStyle: cfg.ai?.tutorStyle,
+      responseLanguage: cfg.ai?.responseLanguage ?? "auto",
     });
 
     const prior = activeAsks.get(body.problemId);
@@ -408,6 +429,182 @@ export function aiRouter(db: Database, cfg: AppConfig) {
     const body = AiSettingsZ.parse(await c.req.json());
     persistAiUpdate(cfg, body);
     return c.json({ ok: true, provider: body.provider });
+  });
+
+  /** Persist just the in-panel toggles (thinking / reply language). */
+  r.patch("/quick-settings", async (c) => {
+    const body = QuickSettingsZ.parse(await c.req.json());
+    persistAiUpdate(cfg, body);
+    return c.json({
+      ok: true,
+      thinkingEnabled: cfg.ai?.thinkingEnabled ?? true,
+      responseLanguage: cfg.ai?.responseLanguage ?? "auto",
+    });
+  });
+
+  // ---- Streaming (SSE) ----------------------------------------------------
+  //
+  // The non-stream /ask and /regenerate above return the whole reply at once.
+  // These siblings stream it token-by-token so the UI can render the answer —
+  // and reason-capable models' live chain-of-thought — as it generates. Same
+  // persistence + abort semantics; the transport is the only difference.
+
+  const enc = new TextEncoder();
+  const sseFrame = (event: string, data: unknown) =>
+    enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+
+  /** Pull the per-problem context (code, verdict, statement) into a system prompt. */
+  function buildContextPrompt(problem: ReturnType<typeof pRepo.getById>, forceFullSolution: boolean): string {
+    const p = problem!;
+    const solution = sRepo.get(p.id);
+    const language = (solution?.language ?? "cpp") as "c" | "cpp" | "py";
+    const code = solution?.code ?? "";
+    const recent = rRepo.listRecent(p.id, 1)[0];
+    let diff: string | null = null;
+    let stderr: string | null = null;
+    if (recent) {
+      const perTest = JSON.parse(recent.per_test_json) as { diff?: string; stderr?: string }[];
+      diff = perTest.find((t) => t.diff)?.diff ?? null;
+      stderr = perTest.find((t) => t.stderr)?.stderr ?? null;
+    }
+    return buildSystemPrompt({
+      language,
+      slug: p.slug,
+      title: p.title,
+      statementMd: p.statement_md,
+      code,
+      verdict: (recent?.verdict as any) ?? null,
+      runtimeMs: recent?.total_runtime_ms ?? null,
+      diff,
+      stderr,
+      forceFullSolution,
+      userProfile: cfg.ai?.userProfile,
+      tutorStyle: cfg.ai?.tutorStyle,
+      responseLanguage: cfg.ai?.responseLanguage ?? "auto",
+    });
+  }
+
+  /**
+   * Shared SSE responder: runs the provider with a live onDelta forwarder,
+   * persists the assistant reply (full or partial-on-abort), and emits
+   * `delta` / `done` / `error` events. Abort wiring mirrors the non-stream path:
+   * the Stop button hits /cancel/:problemId, and a client disconnect aborts too.
+   */
+  function streamReply(problemId: number, systemPrompt: string, history: { role: "user" | "assistant"; content: string }[], clientSignal: AbortSignal | undefined): Response {
+    const prior = activeAsks.get(problemId);
+    if (prior) prior.abort();
+    const controller = new AbortController();
+    activeAsks.set(problemId, controller);
+    if (clientSignal) {
+      if (clientSignal.aborted) controller.abort();
+      else clientSignal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+
+    const provider = buildProvider(cfg.ai);
+
+    const stream = new ReadableStream<Uint8Array>({
+      async start(ctrl) {
+        const safeEnqueue = (chunk: Uint8Array) => {
+          try { ctrl.enqueue(chunk); } catch { /* stream already closed by client */ }
+        };
+        let result;
+        try {
+          result = await provider.ask({
+            systemPrompt,
+            messages: history,
+            maxTokens: cfg.ai?.maxTokens ?? 1024,
+            signal: controller.signal,
+            onDelta: (d) => safeEnqueue(sseFrame("delta", d)),
+          });
+        } catch (e: any) {
+          safeEnqueue(sseFrame("error", { error: e?.message ?? String(e) }));
+          ctrl.close();
+          if (activeAsks.get(problemId) === controller) activeAsks.delete(problemId);
+          return;
+        }
+        if (activeAsks.get(problemId) === controller) activeAsks.delete(problemId);
+
+        const aborted = controller.signal.aborted;
+        if (aborted) {
+          const partial = result.text ?? "";
+          if (partial.trim()) {
+            mRepo.create({
+              problemId, role: "assistant",
+              content: partial + "\n\n_(stopped)_",
+              provider: provider.name, model: provider.model,
+              tokensIn: result.tokensIn ?? null, tokensOut: result.tokensOut ?? null,
+              thinking: result.thinking ?? null, durationMs: result.durationMs ?? null,
+            });
+          }
+          safeEnqueue(sseFrame("done", {
+            ok: false, cancelled: true, text: partial, thinking: result.thinking,
+            provider: provider.name, model: provider.model, durationMs: result.durationMs,
+          }));
+          ctrl.close();
+          return;
+        }
+
+        if (!result.ok) {
+          safeEnqueue(sseFrame("error", { error: result.error, provider: provider.name, model: provider.model }));
+          ctrl.close();
+          return;
+        }
+
+        mRepo.create({
+          problemId, role: "assistant",
+          content: result.text,
+          provider: provider.name, model: provider.model,
+          tokensIn: result.tokensIn ?? null, tokensOut: result.tokensOut ?? null,
+          thinking: result.thinking ?? null, durationMs: result.durationMs ?? null,
+        });
+        safeEnqueue(sseFrame("done", {
+          ok: true, text: result.text, thinking: result.thinking,
+          provider: provider.name, model: provider.model,
+          tokensIn: result.tokensIn, tokensOut: result.tokensOut, durationMs: result.durationMs,
+        }));
+        ctrl.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+        "x-accel-buffering": "no",
+      },
+    });
+  }
+
+  r.post("/ask-stream", async (c) => {
+    const body = AskZ.parse(await c.req.json());
+    const problem = pRepo.getById(body.problemId);
+    if (!problem) return c.json({ ok: false, error: "problem not found" }, 404);
+
+    const systemPrompt = buildContextPrompt(problem, body.forceFullSolution);
+    const history = mRepo.listForProblem(body.problemId).map((m) => ({ role: m.role, content: m.content }));
+    history.push({ role: "user", content: body.message });
+
+    mRepo.create({
+      problemId: body.problemId, role: "user", content: body.message,
+      provider: null, model: null, tokensIn: null, tokensOut: null,
+    });
+
+    return streamReply(body.problemId, systemPrompt, history, c.req.raw.signal);
+  });
+
+  r.post("/regenerate-stream", async (c) => {
+    const body = RegenerateZ.parse(await c.req.json());
+    const problem = pRepo.getById(body.problemId);
+    if (!problem) return c.json({ ok: false, error: "problem not found" }, 404);
+
+    const history = mRepo.listForProblem(body.problemId).map((m) => ({ role: m.role, content: m.content }));
+    if (history.length === 0 || history[history.length - 1]!.role !== "user") {
+      return c.json({ ok: false, error: "no user message at the tail of the conversation to regenerate from" }, 400);
+    }
+
+    const systemPrompt = buildContextPrompt(problem, body.forceFullSolution);
+    return streamReply(body.problemId, systemPrompt, history, c.req.raw.signal);
   });
 
   return r;
