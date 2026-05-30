@@ -123,15 +123,17 @@ export function runsRouter(db: Database, cfg?: AppConfig, upgradeWebSocket?: Upg
         await disposeWorkdir();
       }
 
-      // Prepend the configured compiler bin dirs to PATH so bare g++/gcc/python
-      // resolve inside the shell (mirrors the judge's envForBin behaviour).
-      function shellEnv(): NodeJS.ProcessEnv {
-        const dirs: string[] = [];
+      // Build the shell PATH: the workdir first (so the compiled binary runs as
+      // a bare `sol.exe` — Windows doesn't search the cwd for executables by
+      // default, which made `&& sol.exe` fail with errorlevel 9009), then the
+      // configured compiler bin dirs (so bare g++/gcc/python resolve), then the
+      // inherited PATH.
+      function shellEnv(workdir: string): NodeJS.ProcessEnv {
+        const dirs: string[] = [workdir];
         for (const key of ["c", "cpp", "py"] as const) {
           const bin = cfg?.compiler?.[key]?.bin;
           if (bin && (bin.includes("/") || bin.includes("\\"))) dirs.push(dirname(bin));
         }
-        if (dirs.length === 0) return process.env;
         return { ...process.env, PATH: `${dirs.join(delimiter)}${delimiter}${process.env.PATH ?? ""}` };
       }
 
@@ -143,7 +145,10 @@ export function runsRouter(db: Database, cfg?: AppConfig, upgradeWebSocket?: Upg
         }
         const bin = cfg?.compiler?.[language]?.bin || (language === "c" ? "gcc" : "g++");
         const flags = (cfg?.compiler?.[language]?.flags ?? []).join(" ");
-        return `"${bin}" ${flags} solution.${ext} -o sol.exe && sol.exe`;
+        const exe = process.platform === "win32" ? "sol.exe" : "sol";
+        // The binary lives in the workdir, which is on PATH (see shellEnv), so a
+        // bare name runs it on every platform.
+        return `"${bin}" ${flags} solution.${ext} -o ${exe} && ${exe}`;
       }
 
       async function writeSolution(language: Language, code: string) {
@@ -159,7 +164,7 @@ export function runsRouter(db: Database, cfg?: AppConfig, upgradeWebSocket?: Upg
         const shell = isWin ? (process.env.ComSpec || "cmd.exe") : (process.env.SHELL || "/bin/bash");
         const args = isWin ? ["/Q", "/K"] : ["-i"];
         try {
-          child = spawn(shell, args, { cwd: wd, stdio: ["pipe", "pipe", "pipe"], env: shellEnv(), windowsHide: true });
+          child = spawn(shell, args, { cwd: wd, stdio: ["pipe", "pipe", "pipe"], env: shellEnv(wd), windowsHide: true });
         } catch (e: any) {
           send(ws, { type: "data", data: `\r\n[failed to start shell: ${e?.message ?? e}]\r\n` });
           return;
