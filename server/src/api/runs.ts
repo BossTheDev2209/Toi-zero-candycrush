@@ -1,13 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { writeFile } from "node:fs/promises";
+import { join as joinPath, dirname, delimiter } from "node:path";
 import type { Database } from "bun:sqlite";
 import type { UpgradeWebSocket } from "hono/ws";
 import type { AppConfig } from "../config";
 import { problemRepo } from "../db/repo/problems";
 import { runRepo } from "../db/repo/runs";
 import { runJudge, runCustom } from "../judge/runJudge";
-import { compile } from "../judge/compile";
 import { makeWorkdir, cleanupWorkdir } from "../judge/workdir";
 import type { Language } from "../judge/verdicts";
 
@@ -84,28 +85,31 @@ export function runsRouter(db: Database, cfg?: AppConfig, upgradeWebSocket?: Upg
   });
 
   /**
-   * Interactive terminal over WebSocket. Unlike /exec (compile + one fixed
-   * stdin + buffered result), this keeps the process alive so the user can type
-   * stdin live and watch stdout/stderr stream in real time — a real REPL-ish
-   * console for the current editor code.
+   * Real shell terminal over WebSocket. Spawns the system shell (cmd.exe on
+   * Windows, $SHELL/bash elsewhere) with piped stdio in a scratch workdir and
+   * pipes raw bytes both ways — a genuine terminal you can type into. The current
+   * editor code is written to solution.<ext> in that dir and the configured
+   * compiler's bin dir is prepended to PATH, so you can compile + run your
+   * solution right there (or hit "Run code", which types the command for you).
+   * The client (xterm.js) handles local echo / line editing.
+   *
+   * A true PTY (node-pty) isn't usable here — it crashes under Bun on Windows —
+   * so this is a piped shell: prompts, command execution and program I/O all
+   * work; in-shell line history / tab-completion do not.
    *
    * Wire protocol (JSON per frame):
-   *   client → { type: "start", language, code } | { type: "stdin", data }
-   *          | { type: "eof" } | { type: "kill" }
-   *   server → { type: "system"|"compile-error"|"stdout"|"stderr", data }
-   *          | { type: "started" } | { type: "exit", code, runtimeMs }
+   *   client → { type:"start", language, code } | { type:"input", data }
+   *          | { type:"run", language, code }
+   *   server → { type:"data", data } | { type:"exit", code }
    *
-   * Only one process per socket; a new "start" restarts. Uses stdio (file-IO
-   * problems still grade via Run; the terminal is for eyeballing stdio runs).
-   * Safety: 120s wall-clock cap, and the process dies on socket close.
+   * One shell per socket; "start" (re)spawns. The shell dies on socket close.
    */
   if (upgradeWebSocket) {
-    r.get("/:problemId/terminal", upgradeWebSocket((c) => {
-      const id = Number(c.req.param("problemId"));
+    const EXT: Record<Language, string> = { c: "c", cpp: "cpp", py: "py" };
+
+    r.get("/:problemId/terminal", upgradeWebSocket(() => {
       let child: ChildProcessWithoutNullStreams | null = null;
       let wd: string | null = null;
-      let killTimer: ReturnType<typeof setTimeout> | null = null;
-      let startedAt = 0;
 
       const send = (ws: { send: (d: string) => void }, obj: unknown) => {
         try { ws.send(JSON.stringify(obj)); } catch { /* socket closed */ }
@@ -115,62 +119,72 @@ export function runsRouter(db: Database, cfg?: AppConfig, upgradeWebSocket?: Upg
         if (wd) { const w = wd; wd = null; try { await cleanupWorkdir(w); } catch { /* ignore */ } }
       }
       async function cleanup() {
-        if (killTimer) { clearTimeout(killTimer); killTimer = null; }
         if (child) { try { child.kill("SIGKILL"); } catch { /* ignore */ } child = null; }
         await disposeWorkdir();
       }
 
+      // Prepend the configured compiler bin dirs to PATH so bare g++/gcc/python
+      // resolve inside the shell (mirrors the judge's envForBin behaviour).
+      function shellEnv(): NodeJS.ProcessEnv {
+        const dirs: string[] = [];
+        for (const key of ["c", "cpp", "py"] as const) {
+          const bin = cfg?.compiler?.[key]?.bin;
+          if (bin && (bin.includes("/") || bin.includes("\\"))) dirs.push(dirname(bin));
+        }
+        if (dirs.length === 0) return process.env;
+        return { ...process.env, PATH: `${dirs.join(delimiter)}${delimiter}${process.env.PATH ?? ""}` };
+      }
+
+      function runCommand(language: Language): string {
+        const ext = EXT[language];
+        if (language === "py") {
+          const bin = cfg?.compiler?.py?.bin || "python";
+          return `"${bin}" solution.${ext}`;
+        }
+        const bin = cfg?.compiler?.[language]?.bin || (language === "c" ? "gcc" : "g++");
+        const flags = (cfg?.compiler?.[language]?.flags ?? []).join(" ");
+        return `"${bin}" ${flags} solution.${ext} -o sol.exe && sol.exe`;
+      }
+
+      async function writeSolution(language: Language, code: string) {
+        if (!wd) return;
+        try { await writeFile(joinPath(wd, `solution.${EXT[language]}`), code ?? "", "utf8"); } catch { /* ignore */ }
+      }
+
       async function start(ws: { send: (d: string) => void }, language: Language, code: string) {
         await cleanup();
-        const p = pRepo.getById(id);
-        if (!p) { send(ws, { type: "system", data: "problem not found" }); return; }
         wd = await makeWorkdir();
-        send(ws, { type: "system", data: "Compiling…" });
-        const cc = await compile({ language, code, workdir: wd, config: cfg?.compiler });
-        if (!cc.ok) {
-          send(ws, { type: "compile-error", data: cc.stderr });
-          send(ws, { type: "exit", code: null, runtimeMs: 0 });
-          await disposeWorkdir();
+        await writeSolution(language, code);
+        const isWin = process.platform === "win32";
+        const shell = isWin ? (process.env.ComSpec || "cmd.exe") : (process.env.SHELL || "/bin/bash");
+        const args = isWin ? ["/Q", "/K"] : ["-i"];
+        try {
+          child = spawn(shell, args, { cwd: wd, stdio: ["pipe", "pipe", "pipe"], env: shellEnv(), windowsHide: true });
+        } catch (e: any) {
+          send(ws, { type: "data", data: `\r\n[failed to start shell: ${e?.message ?? e}]\r\n` });
           return;
         }
-        send(ws, { type: "started" });
-        startedAt = performance.now();
-        child = spawn(cc.binaryPath, cc.args ?? [], { cwd: wd, stdio: ["pipe", "pipe", "pipe"] });
-        child.stdout.on("data", (b: Buffer) => send(ws, { type: "stdout", data: b.toString() }));
-        child.stderr.on("data", (b: Buffer) => send(ws, { type: "stderr", data: b.toString() }));
-        child.on("error", (e: Error) => send(ws, { type: "stderr", data: `spawn error: ${e.message}` }));
-        child.on("close", (code: number | null) => {
-          const runtimeMs = Math.round(performance.now() - startedAt);
-          send(ws, { type: "exit", code, runtimeMs });
-          if (killTimer) { clearTimeout(killTimer); killTimer = null; }
-          child = null;
-          void disposeWorkdir();
-        });
-        killTimer = setTimeout(() => {
-          if (child) {
-            send(ws, { type: "system", data: "Killed: 120s wall-clock limit." });
-            try { child.kill("SIGKILL"); } catch { /* ignore */ }
-          }
-        }, 120_000);
+        send(ws, { type: "data", data: `\x1b[2m# real shell — your code is saved as solution.${EXT[language]}. Click "Run code" or compile manually.\x1b[0m\r\n` });
+        child.stdout.on("data", (b: Buffer) => send(ws, { type: "data", data: b.toString() }));
+        child.stderr.on("data", (b: Buffer) => send(ws, { type: "data", data: b.toString() }));
+        child.on("error", (e: Error) => send(ws, { type: "data", data: `\r\n[shell error: ${e.message}]\r\n` }));
+        child.on("close", (code: number | null) => { send(ws, { type: "exit", code }); child = null; void disposeWorkdir(); });
       }
 
       return {
         onMessage(evt, ws) {
           let msg: { type?: string; language?: string; code?: string; data?: string };
-          try {
-            const raw = typeof evt.data === "string" ? evt.data : String(evt.data);
-            msg = JSON.parse(raw);
-          } catch { return; }
+          try { msg = JSON.parse(typeof evt.data === "string" ? evt.data : String(evt.data)); } catch { return; }
+          const lang = (["c", "cpp", "py"].includes(msg.language ?? "") ? msg.language : "cpp") as Language;
           if (msg.type === "start") {
-            const lang = (["c", "cpp", "py"].includes(msg.language ?? "") ? msg.language : "cpp") as Language;
             void start(ws, lang, msg.code ?? "");
-          } else if (msg.type === "stdin") {
+          } else if (msg.type === "input") {
             try { child?.stdin.write(msg.data ?? ""); } catch { /* not running */ }
-          } else if (msg.type === "eof") {
-            try { child?.stdin.end(); } catch { /* not running */ }
-          } else if (msg.type === "kill") {
-            void cleanup();
-            send(ws, { type: "system", data: "Stopped." });
+          } else if (msg.type === "run") {
+            void (async () => {
+              await writeSolution(lang, msg.code ?? "");
+              try { child?.stdin.write(runCommand(lang) + "\r\n"); } catch { /* not running */ }
+            })();
           }
         },
         onClose() { void cleanup(); },

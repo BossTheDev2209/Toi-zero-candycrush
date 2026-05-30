@@ -13,7 +13,7 @@ import { EyebrowLabel } from "../components/EyebrowLabel";
 import { TestResultsPanel } from "../components/TestResultsPanel";
 import { RunHistoryList } from "../components/RunHistoryList";
 import { VerdictGlossary } from "../components/VerdictGlossary";
-import { InteractiveTerminal } from "../components/InteractiveTerminal";
+import { RealTerminal } from "../components/RealTerminal";
 import { PdfViewer } from "../components/PdfViewer";
 import { AiHelpPanel } from "../components/AiHelpPanel";
 
@@ -395,11 +395,10 @@ export function ProblemWorkspacePage() {
         <div>
           <EyebrowLabel>Terminal</EyebrowLabel>
           <div className="motion-surface mt-3 rounded-[40px] border border-[var(--color-dust)] bg-white p-5">
-            <InteractiveTerminal
+            <RealTerminal
               problemId={pid}
               language={lang}
               code={code}
-              sampleInput={p.tests.samples[0]?.input_text}
             />
           </div>
         </div>
